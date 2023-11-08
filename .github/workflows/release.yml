@@ -37,7 +37,7 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           gh release create "${tag}" --draft
-            img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
-            img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
-            img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
-            img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
+          img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
+          img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
+          img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
+          img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
