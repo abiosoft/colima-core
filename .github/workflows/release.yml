@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "test-v*"
+  pull_request:
+
+env:
+    CODENAME: mantic
+    VERSION: 23.10
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download cloud images
+        run: |
+          make img CODENAME=${CODENAME} VERSION=${VERSION}
+
+      - name: Create release
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Note "folded" style; requires a blank line to insert actual newline
+        run: >
+          tag="${GITHUB_REF##*/}"
+
+          hub release create
+          -a img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
+          -a img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
+          -a img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
+          -a img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
+          -m "${tag}" --draft "${tag}"
