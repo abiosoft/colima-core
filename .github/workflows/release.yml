@@ -7,8 +7,7 @@ on:
       - "test-v*"
   pull_request:
 
-permissions:
-  workflows: write
+permissions: write-all
 
 env:
   CODENAME: mantic
