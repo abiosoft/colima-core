@@ -34,11 +34,8 @@ jobs:
         run: >
           tag="${GITHUB_REF##*/}"
 
-          sudo apt-get update && sudo apt-get install -y hub
-
-          hub release create
-          -a img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
-          -a img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
-          -a img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
-          -a img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
-          -m "${tag}" --draft "${tag}"
+          gh release create "${tag}" --draft
+            img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
+            img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
+            img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
+            img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
