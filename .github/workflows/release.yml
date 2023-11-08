@@ -7,6 +7,9 @@ on:
       - "test-v*"
   pull_request:
 
+permissions:
+  workflows: write
+
 env:
   CODENAME: mantic
   VERSION: "23.10"
