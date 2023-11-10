@@ -14,6 +14,7 @@ env:
   UBUNTU_VERSION: "23.10"
   NERDCTL_VERSION: "1.7.0"
   FLANNEL_VERSION: "1.2.0"
+  BINFMT_VERSION: "deploy/v7.0.0-28"
 
 jobs:
   release:
@@ -29,6 +30,7 @@ jobs:
       - name: Download cloud images
         run: |
           make cloud-images UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION}
+          make binfmt BINFMT_VERSION=${BINFMT_VERSION}
           make containerd NERDCTL_VERSION=${NERDCTL_VERSION} FLANNEL_VERSION=${FLANNEL_VERSION}
 
       - name: Create release
@@ -48,3 +50,8 @@ jobs:
           dist/containerd/containerd-utils-amd64.tar.gz.sha512sum
           dist/containerd/containerd-utils-arm64.tar.gz
           dist/containerd/containerd-utils-arm64.tar.gz.sha512sum
+          dist/binfmt/binfmt-amd64.tar.gz
+          dist/binfmt/binfmt-amd64.tar.gz.sha512sum
+          dist/binfmt/binfmt-arm64.tar.gz
+          dist/binfmt/binfmt-arm64.tar.gz.sha512sum
+  

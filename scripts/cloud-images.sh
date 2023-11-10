@@ -3,7 +3,7 @@
 set -ex
 
 # switch to dist dir
-SCRIPT_DIR=$(realpath "$(dirname $0)")
+SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
 DIST_DIR="${SCRIPT_DIR}/dist/img"
 mkdir -p $DIST_DIR
 
