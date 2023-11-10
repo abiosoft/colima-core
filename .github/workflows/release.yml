@@ -30,7 +30,13 @@ jobs:
       - name: Download cloud images
         run: |
           make cloud-images UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION}
+
+      - name: Download binfmt
+        run: |
           make binfmt BINFMT_VERSION=${BINFMT_VERSION}
+
+      - name: Download containerd dependencies
+        run: |
           make containerd NERDCTL_VERSION=${NERDCTL_VERSION} FLANNEL_VERSION=${FLANNEL_VERSION}
 
       - name: Create release
