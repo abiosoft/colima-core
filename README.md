@@ -1,2 +1,3 @@
-# colima-ubuntu
-Ubuntu cloud images used by Colima
+# colima-core
+
+Dependencies for Colima
