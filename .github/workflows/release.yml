@@ -10,8 +10,10 @@ on:
 permissions: write-all
 
 env:
-  CODENAME: mantic
-  VERSION: "23.10"
+  UBUNTU_CODENAME: mantic
+  UBUNTU_VERSION: "23.10"
+  NERDCTL_VERSION: "1.7.0"
+  FLANNEL_VERSION: "1.2.0"
 
 jobs:
   release:
@@ -26,7 +28,8 @@ jobs:
 
       - name: Download cloud images
         run: |
-          make img CODENAME=${CODENAME} VERSION=${VERSION}
+          make cloud-images UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION}
+          make containerd NERDCTL_VERSION=${NERDCTL_VERSION} FLANNEL_VERSION=${FLANNEL_VERSION}
 
       - name: Create release
         if: github.event_name != 'pull_request'
@@ -37,7 +40,11 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           gh release create "${tag}" --draft --title "${tag}"
-          img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img
-          img/ubuntu-${VERSION}-minimal-cloudimg-amd64.img.sha512sum
-          img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img
-          img/ubuntu-${VERSION}-minimal-cloudimg-arm64.img.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.img
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.img.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.img
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.img.sha512sum
+          dist/containerd/containerd-utils-amd64.tar.gz
+          dist/containerd/containerd-utils-amd64.tar.gz.sha512sum
+          dist/containerd/containerd-utils-arm64.tar.gz
+          dist/containerd/containerd-utils-arm64.tar.gz.sha512sum
