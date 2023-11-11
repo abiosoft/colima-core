@@ -2,6 +2,7 @@
 UBUNTU_VERSION ?= 23.10
 UBUNTU_CODENAME ?= mantic
 BINFMT_VERSION ?= deploy/v7.0.0-28
+BINFMT_QEMU_VERSION ?= 7.0.0 
 
 # containerd dependency
 NERDCTL_VERSION ?= 1.7.0
@@ -20,7 +21,7 @@ cloud-images:
 
 .PHONY: binfmt
 binfmt:
-	BINFMT_VERSION=$(BINFMT_VERSION) scripts/binfmt.sh
+	BINFMT_VERSION=$(BINFMT_VERSION) BINFMT_QEMU_VERSION=$(BINFMT_QEMU_VERSION) scripts/binfmt.sh
 
 .PHONY: containerd
 containerd:

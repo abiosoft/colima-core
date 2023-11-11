@@ -15,6 +15,7 @@ env:
   NERDCTL_VERSION: "1.7.0"
   FLANNEL_VERSION: "1.2.0"
   BINFMT_VERSION: "deploy/v7.0.0-28"
+  BINFMT_QEMU_VERSION: "7.0.0" 
 
 jobs:
   release:
@@ -33,7 +34,7 @@ jobs:
 
       - name: Download binfmt
         run: |
-          make binfmt BINFMT_VERSION=${BINFMT_VERSION}
+          make binfmt BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
 
       - name: Download containerd dependencies
         run: |

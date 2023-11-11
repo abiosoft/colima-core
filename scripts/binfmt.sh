@@ -22,8 +22,8 @@ download_binfmt() (
 
 download_qemu() (
     # download archive
-    FILE="qemu_v7.0.0_linux-${1}.tar.gz"
-    URL="https://github.com/tonistiigi/binfmt/releases/download/deploy%2Fv7.0.0-28/${FILE}"
+    FILE="qemu_v${BINFMT_QEMU_VERSION}_linux-${1}.tar.gz"
+    URL="https://github.com/tonistiigi/binfmt/releases/download/${BINFMT_VERSION}/${FILE}"
     curl -LO $URL
 
     # extract
