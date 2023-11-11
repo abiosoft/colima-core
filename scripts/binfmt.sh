@@ -37,7 +37,7 @@ create_archive() (
         binfmt \
         qemu-${2}
     
-    sha512sum "${FILE}" > "${FILE}.sha512sum"
+    shasum -a 512 "${FILE}" > "${FILE}.sha512sum"
 )
 
 copy_to_dist() (

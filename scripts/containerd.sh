@@ -17,7 +17,7 @@ download_containerd() (
     curl -LO $URL
 
     # validate
-    curl -sL "https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VERSION}/SHA256SUMS" | grep "${FILE}" | sha256sum --check --status
+    curl -sL "https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VERSION}/SHA256SUMS" | grep "${FILE}" | shasum -a 256 --check --status
 
     # extract
     tar xvfz $FILE 
@@ -25,16 +25,16 @@ download_containerd() (
 
 download_flannel() (
     # download archive
-    FILE="cni-plugin-flannel-linux-arm64-v${FLANNEL_VERSION}.tgz"
+    FILE="cni-plugin-flannel-linux-${1}-v${FLANNEL_VERSION}.tgz"
     URL="https://github.com/flannel-io/cni-plugin/releases/download/v${FLANNEL_VERSION}/${FILE}"
     curl -LO $URL
 
     # validate
-    curl -sL "${URL}.sha512" | sha512sum --check --status
+    curl -sL "${URL}.sha512" | shasum -a 512 --check --status
 
     # extract
-    FLANNEL="$(tar xvfz $FILE)"
-    mv $FLANNEL libexec/cni/flannel
+    tar xvfz "$FILE"
+    mv "flannel-${1}" libexec/cni/flannel
 )
 
 create_archive() (
@@ -47,7 +47,7 @@ create_archive() (
         lib/systemd/system/buildkit.service \
         libexec/cni
     
-    sha512sum "${FILE}" > "${FILE}.sha512sum"
+    shasum -a 512 "${FILE}" > "${FILE}.sha512sum"
 )
 
 copy_to_dist() (
