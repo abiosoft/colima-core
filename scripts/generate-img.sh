@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-set -ex
+set -eux
 
 # disable apt prompts
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo $IMG_FILE $ARCH $BINFMT_ARCH
+echo vars: $IMG_FILE $ARCH $BINFMT_ARCH
 
 SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
 IMG_DIR="$SCRIPT_DIR/dist/img"
@@ -31,6 +31,7 @@ mount_partition() (
     mkdir -p $CHROOT_DIR
     mount -o loop,offset=$(($1 * 512)) $FILE.raw $CHROOT_DIR
 )
+
 unmount_partition() (
     umount $CHROOT_DIR
 )
