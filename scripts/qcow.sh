@@ -93,7 +93,9 @@ install_packages() (
 
 compress_file() (
     qemu-img convert -p -f raw -O qcow2 -c $FILE.raw $FILE.qcow2
-    shasum -a 512 "${FILE}.qcow2" >"${FILE}.qcow2.sha512sum"
+    dir="$(dirname $FILE)"
+    filename="$(basename $FILE)"
+    (cd $dir && shasum -a 512 "${filename}.qcow2" >"${filename}.qcow2.sha512sum")
     rm $FILE.raw
 )
 
