@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-set -ex
+set -eux
+
+# external variables that must be set
+echo vars: $ARCH $BINFMT_ARCH
 
 SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
 DIST_DIR="${SCRIPT_DIR}/dist/binfmt"
@@ -17,7 +20,7 @@ download_binfmt() (
     curl -LO $URL
 
     # extract
-    tar xvfz $FILE 
+    tar xvfz $FILE
 )
 
 download_qemu() (
@@ -27,7 +30,7 @@ download_qemu() (
     curl -LO $URL
 
     # extract
-    tar xvfz $FILE 
+    tar xvfz $FILE
 )
 
 create_archive() (
@@ -36,8 +39,8 @@ create_archive() (
     tar cfz $FILE \
         binfmt \
         qemu-${2}
-    
-    shasum -a 512 "${FILE}" > "${FILE}.sha512sum"
+
+    shasum -a 512 "${FILE}" >"${FILE}.sha512sum"
 )
 
 copy_to_dist() (
@@ -57,8 +60,7 @@ download() (
 )
 
 # download
-download arm64 x86_64
-download amd64 aarch64
+download $ARCH $BINFMT_ARCH
 
 echo download successful
 ls -lh $DIST_DIR

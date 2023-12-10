@@ -6,21 +6,23 @@ set -eux
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo vars: $IMG_FILE $ARCH $BINFMT_ARCH
+echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION
+
+FILENAME="ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-${ARCH}"
 
 SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
 IMG_DIR="$SCRIPT_DIR/dist/img"
 CHROOT_DIR=/mnt/colima-img
 
-FILE="$IMG_DIR/$IMG_FILE"
+FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
     apt update
-    apt install -y file fdisk qemu-system
+    apt install -y file fdisk libdigest-sha-perl qemu-utils
 )
 
 convert_file() (
-    qemu-img convert -p -f qcow2 -O raw $FILE $FILE.raw
+    qemu-img convert -p -f qcow2 -O raw $FILE.img $FILE.raw
 )
 
 extract_partition_offset() (
@@ -47,7 +49,7 @@ install_packages() (
 
     # internet
     chroot_exec mv /etc/resolv.conf /etc/resolv.conf.bak
-    echo 'nameserver 1.1.1.1' > $CHROOT_DIR/etc/resolv.conf
+    echo 'nameserver 1.1.1.1' >$CHROOT_DIR/etc/resolv.conf
 
     # packages
     chroot_exec apt update
@@ -58,7 +60,9 @@ install_packages() (
         chroot_exec rm /tmp/get-docker.sh
     )
     chroot_exec apt remove -y --purge snapd pollinate
-    chroot_exec sh -c "rm -rf /var/lib/apt/lists/*"
+    chroot_exec apt autoremove -y
+    chroot_exec apt clean -y
+    chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
 
     # binfmt
     (
@@ -89,12 +93,14 @@ install_packages() (
 
 compress_file() (
     qemu-img convert -p -f raw -O qcow2 -c $FILE.raw $FILE.qcow2
+    shasum -a 512 "${FILE}.qcow2" >"${FILE}.qcow2.sha512sum"
+    rm $FILE.raw
 )
 
-
+# perform all actions
 install_dependencies
 convert_file
 mount_partition "$(extract_partition_offset)"
-install_packages socat sshfs iptables
+install_packages iptables socat sshfs
 unmount_partition
 compress_file

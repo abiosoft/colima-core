@@ -8,22 +8,42 @@ BINFMT_QEMU_VERSION ?= 7.0.0
 NERDCTL_VERSION ?= 1.7.0
 FLANNEL_VERSION ?= 1.2.0
 
-.PHONY: all
-all: cloud-images binfmt containerd
+# architecture defaults to the current system's.
+OS_ARCH ?= $(shell uname -m)
+ifeq ($(strip $(OS_ARCH)),arm64)
+OS_ARCH = aarch64
+endif
+
+# OS_ARCH is derived from `uname -m` but the alternate architecture name (e.g. amd64, arm64)
+# is required for Docker and asset downloads.
+ARCH_x86_64 = amd64
+ARCH_aarch64 = arm64
+ARCH = $(shell echo "$(ARCH_$(OS_ARCH))")
+
+# binfmt needs the opposite of OS_ARCH
+BINFMT_ARCH = aarch64
+ifeq ($(strip $(OS_ARCH)),aarch64)
+BINFMT_ARCH = x86_64
+endif
+
+#
+# targets
+#
+
+all: qcow
 
 .PHONY: clean
 clean:
 	rm -rf dist
 
-.PHONY: cloud-images
-cloud-images:
-	UBUNTU_VERSION=$(UBUNTU_VERSION) UBUNTU_CODENAME=$(UBUNTU_CODENAME) scripts/cloud-images.sh
+cloud-image:
+	ARCH=$(ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) UBUNTU_CODENAME=$(UBUNTU_CODENAME) scripts/cloud-image.sh
 
-.PHONY: binfmt
 binfmt:
-	BINFMT_VERSION=$(BINFMT_VERSION) BINFMT_QEMU_VERSION=$(BINFMT_QEMU_VERSION) scripts/binfmt.sh
+	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) BINFMT_VERSION=$(BINFMT_VERSION) BINFMT_QEMU_VERSION=$(BINFMT_QEMU_VERSION) scripts/binfmt.sh
 
-.PHONY: containerd
 containerd:
-	NERDCTL_VERSION=$(NERDCTL_VERSION) FLANNEL_VERSION=$(FLANNEL_VERSION) scripts/containerd.sh
+	ARCH=$(ARCH) NERDCTL_VERSION=$(NERDCTL_VERSION) FLANNEL_VERSION=$(FLANNEL_VERSION) scripts/containerd.sh
 
+qcow: cloud-image binfmt containerd
+	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) scripts/qcow.docker.sh

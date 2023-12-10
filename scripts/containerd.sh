@@ -20,7 +20,7 @@ download_containerd() (
     curl -sL "https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VERSION}/SHA256SUMS" | grep "${FILE}" | shasum -a 256 --check --status
 
     # extract
-    tar xvfz $FILE 
+    tar xvfz $FILE
 )
 
 download_flannel() (
@@ -46,8 +46,8 @@ create_archive() (
         bin/buildctl \
         lib/systemd/system/buildkit.service \
         libexec/cni
-    
-    shasum -a 512 "${FILE}" > "${FILE}.sha512sum"
+
+    shasum -a 512 "${FILE}" >"${FILE}.sha512sum"
 )
 
 copy_to_dist() (
@@ -67,8 +67,7 @@ download() (
 )
 
 # download
-download arm64
-download amd64
+download $ARCH
 
 echo download successful
 ls -lh $DIST_DIR
