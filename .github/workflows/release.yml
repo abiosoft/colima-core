@@ -28,17 +28,13 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Download cloud images
+      - name: Build for x86_64
         run: |
-          make cloud-images UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION}
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
 
-      - name: Download binfmt
+      - name: Build for aarch64
         run: |
-          make binfmt BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
-
-      - name: Download containerd dependencies
-        run: |
-          make containerd NERDCTL_VERSION=${NERDCTL_VERSION} FLANNEL_VERSION=${FLANNEL_VERSION}
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
 
       - name: Create release
         if: github.event_name != 'pull_request'
@@ -49,16 +45,7 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           gh release create "${tag}" --draft --title "${tag}"
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.img
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.img.sha512sum
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.img
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.img.sha512sum
-          dist/containerd/containerd-utils-amd64.tar.gz
-          dist/containerd/containerd-utils-amd64.tar.gz.sha512sum
-          dist/containerd/containerd-utils-arm64.tar.gz
-          dist/containerd/containerd-utils-arm64.tar.gz.sha512sum
-          dist/binfmt/binfmt-amd64.tar.gz
-          dist/binfmt/binfmt-amd64.tar.gz.sha512sum
-          dist/binfmt/binfmt-arm64.tar.gz
-          dist/binfmt/binfmt-arm64.tar.gz.sha512sum
-  
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2.sha512sum
