@@ -31,10 +31,12 @@ jobs:
       - name: Build for x86_64
         run: |
           make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          ls -lah dist/img
 
       - name: Build for aarch64
         run: |
           make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          ls -lah dist/img
 
       - name: Create release
         if: github.event_name != 'pull_request'
