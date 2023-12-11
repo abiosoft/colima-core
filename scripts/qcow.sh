@@ -59,7 +59,12 @@ install_packages() (
         chroot_exec sh /tmp/get-docker.sh
         chroot_exec rm /tmp/get-docker.sh
     )
-    chroot_exec apt remove -y --purge snapd pollinate
+    # mark packages as dependencies so that autoremove does not uninstall them
+    chroot_exec apt install -y cloud-init lsb-release python3-apt gnupg curl wget
+
+    chroot_exec apt purge -y apport console-setup-linux dbus-user-session dmsetup liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
+    chroot_exec apt purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
+
     chroot_exec apt autoremove -y
     chroot_exec apt clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
