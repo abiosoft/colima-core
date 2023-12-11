@@ -66,6 +66,8 @@ install_packages() (
     chroot_exec apt purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
 
     chroot_exec apt autoremove -y
+    chroot_exec apt-mark hold linux-image-virtual
+    chroot_exec apt upgrade -y
     chroot_exec apt clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
 
