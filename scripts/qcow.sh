@@ -17,8 +17,8 @@ CHROOT_DIR=/mnt/colima-img
 FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
-    apt update
-    apt install -y file fdisk libdigest-sha-perl qemu-utils
+    apt-get update
+    apt-get install -y file fdisk libdigest-sha-perl qemu-utils
 )
 
 convert_file() (
@@ -52,23 +52,23 @@ install_packages() (
     echo 'nameserver 1.1.1.1' >$CHROOT_DIR/etc/resolv.conf
 
     # packages
-    chroot_exec apt update
-    chroot_exec apt install -y "$@"
+    chroot_exec apt-get update
+    chroot_exec apt-get install -y "$@"
     (
         chroot_exec curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
         chroot_exec sh /tmp/get-docker.sh
         chroot_exec rm /tmp/get-docker.sh
     )
     # mark packages as dependencies so that autoremove does not uninstall them
-    chroot_exec apt install -y cloud-init lsb-release python3-apt gnupg curl wget
+    chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
 
-    chroot_exec apt purge -y apport console-setup-linux dbus-user-session dmsetup liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
-    chroot_exec apt purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
+    chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session dmsetup liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
+    chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
 
-    chroot_exec apt autoremove -y
+    chroot_exec apt-get autoremove -y
     chroot_exec apt-mark hold linux-image-virtual
-    chroot_exec apt upgrade -y
-    chroot_exec apt clean -y
+    chroot_exec apt-get upgrade -y
+    chroot_exec apt-get clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
 
     # binfmt
