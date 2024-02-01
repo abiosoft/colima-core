@@ -5,7 +5,7 @@ BINFMT_VERSION ?= deploy/v7.0.0-28
 BINFMT_QEMU_VERSION ?= 7.0.0 
 
 # containerd dependency
-NERDCTL_VERSION ?= 1.7.0
+NERDCTL_VERSION ?= 1.7.3
 FLANNEL_VERSION ?= 1.2.0
 
 # architecture defaults to the current system's.
