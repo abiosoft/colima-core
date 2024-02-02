@@ -66,7 +66,7 @@ install_packages() (
     chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
 
     chroot_exec apt-get autoremove -y
-    chroot_exec apt-mark hold linux-image-virtual
+    chroot_exec apt-mark hold linux-image-virtual docker-ce docker-ce-cli containerd.io
     chroot_exec apt-get upgrade -y
     chroot_exec apt-get clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
