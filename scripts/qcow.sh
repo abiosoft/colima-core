@@ -6,7 +6,7 @@ set -eux
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION
+echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION $DOCKER_VERSION
 
 FILENAME="ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-${ARCH}"
 
@@ -56,7 +56,7 @@ install_packages() (
     chroot_exec apt-get install -y "$@"
     (
         chroot_exec curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-        chroot_exec sh /tmp/get-docker.sh
+        chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
         chroot_exec rm /tmp/get-docker.sh
     )
     # mark packages as dependencies so that autoremove does not uninstall them

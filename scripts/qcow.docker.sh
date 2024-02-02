@@ -6,7 +6,7 @@ set -eux
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION
+echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION $DOCKER_VERSION
 
 # computed variables
 SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
@@ -21,4 +21,5 @@ docker run --rm --privileged \
     --env ARCH \
     --env BINFMT_ARCH \
     --env UBUNTU_VERSION \
+    --env DOCKER_VERSION \
     ubuntu:${UBUNTU_VERSION} /build/scripts/qcow.sh

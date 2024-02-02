@@ -4,6 +4,9 @@ UBUNTU_CODENAME ?= mantic
 BINFMT_VERSION ?= deploy/v7.0.0-28
 BINFMT_QEMU_VERSION ?= 7.0.0 
 
+# docker
+DOCKER_VERSION=24.0.9
+
 # containerd dependency
 NERDCTL_VERSION ?= 1.7.3
 FLANNEL_VERSION ?= 1.2.0
@@ -46,4 +49,4 @@ containerd:
 	ARCH=$(ARCH) NERDCTL_VERSION=$(NERDCTL_VERSION) FLANNEL_VERSION=$(FLANNEL_VERSION) scripts/containerd.sh
 
 qcow: cloud-image binfmt containerd
-	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) scripts/qcow.docker.sh
+	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) scripts/qcow.docker.sh
