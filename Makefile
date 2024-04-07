@@ -2,13 +2,13 @@
 UBUNTU_VERSION ?= 23.10
 UBUNTU_CODENAME ?= mantic
 BINFMT_VERSION ?= deploy/v7.0.0-28
-BINFMT_QEMU_VERSION ?= 7.0.0 
+BINFMT_QEMU_VERSION ?= 7.0.0
 
 # docker
 DOCKER_VERSION=24.0.9
 
 # containerd dependency
-NERDCTL_VERSION ?= 1.7.3
+NERDCTL_VERSION ?= 1.7.5
 FLANNEL_VERSION ?= 1.2.0
 
 # architecture defaults to the current system's.
