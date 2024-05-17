@@ -10,7 +10,7 @@ on:
 permissions: write-all
 
 env:
-  UBUNTU_CODENAME: mantic
+  UBUNTU_CODENAME: noble
   UBUNTU_VERSION: "24.04"
   DOCKER_VERSION: "26.1.1"
   NERDCTL_VERSION: "1.7.6"
