@@ -5,7 +5,7 @@ BINFMT_VERSION ?= deploy/v7.0.0-28
 BINFMT_QEMU_VERSION ?= 7.0.0
 
 # docker
-DOCKER_VERSION=26.1.1
+DOCKER_VERSION=27.0.3
 
 # containerd dependency
 NERDCTL_VERSION ?= 1.7.6
