@@ -6,7 +6,7 @@ set -eux
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION $DOCKER_VERSION
+echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION $DOCKER_VERSION $RUNTIME
 
 FILENAME="ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-${ARCH}"
 
@@ -54,11 +54,48 @@ install_packages() (
     # packages
     chroot_exec apt-get update
     chroot_exec apt-get install -y "$@"
-    (
-        chroot_exec curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-        chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
-        chroot_exec rm /tmp/get-docker.sh
-    )
+
+    # docker
+    if [ "$RUNTIME" == "docker" ]; then
+        (
+            chroot_exec curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+            chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
+            chroot_exec rm /tmp/get-docker.sh
+            chroot_exec apt-mark hold docker-ce docker-ce-cli containerd.io
+        )
+    fi
+
+    # containerd
+    if [ "$RUNTIME" == "containerd" ]; then
+        chroot_exec apt-get install -y containerd
+        (
+            cd /tmp
+            tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
+            chroot_exec mkdir -p /opt/cni
+            chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
+        )
+    fi
+
+    # incus
+    if [ "$RUNTIME" == "incus" ]; then
+        (
+            chroot_exec mkdir -p /etc/apt/keyrings/
+            chroot_exec curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
+            chroot_exec sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/zabbly.asc
+
+EOF'
+            chroot_exec apt-get update
+            chroot_exec apt-get install -y incus incus-ui-canonical
+        )
+    fi
+
     # mark packages as dependencies so that autoremove does not uninstall them
     chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
 
@@ -66,8 +103,6 @@ install_packages() (
     chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
 
     chroot_exec apt-get autoremove -y
-    chroot_exec apt-mark hold linux-image-virtual docker-ce docker-ce-cli containerd.io
-    chroot_exec apt-get upgrade -y
     chroot_exec apt-get clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
 
@@ -77,14 +112,6 @@ install_packages() (
         tar xfz /build/dist/binfmt/binfmt-${ARCH}.tar.gz
         chown root:root binfmt qemu-${BINFMT_ARCH}
         mv binfmt qemu-${BINFMT_ARCH} ${CHROOT_DIR}/usr/bin
-    )
-
-    # containerd
-    (
-        cd /tmp
-        tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
-        chroot_exec mkdir -p /opt/cni
-        chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
     )
 
     # clean traces
@@ -100,9 +127,10 @@ install_packages() (
 )
 
 compress_file() (
-    qemu-img convert -p -f raw -O qcow2 -c $FILE.raw $FILE.qcow2
-    dir="$(dirname $FILE)"
-    filename="$(basename $FILE)"
+    qcow_file="${FILE}-${RUNTIME}"
+    qemu-img convert -p -f raw -O qcow2 -c $FILE.raw $qcow_file.qcow2
+    dir="$(dirname $qcow_file)"
+    filename="$(basename $qcow_file)"
     (cd $dir && shasum -a 512 "${filename}.qcow2" >"${filename}.qcow2.sha512sum")
     rm $FILE.raw
 )

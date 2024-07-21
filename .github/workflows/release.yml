@@ -31,12 +31,18 @@ jobs:
 
       - name: Build for x86_64
         run: |
-          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=none
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=docker
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=containerd
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=incus
           ls -lah dist/img
 
       - name: Build for aarch64
         run: |
-          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=none
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=docker
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=containerd
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=incus
           ls -lah dist/img
 
       - name: Create release
@@ -48,7 +54,11 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           gh release create "${tag}" --draft --title "${tag}"
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2.sha512sum
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-none.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-none.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-none.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-none.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-docker.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-docker.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-docker.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-docker.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-containerd.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-containerd.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-containerd.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-containerd.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-incus.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-incus.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-incus.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-incus.qcow2.sha512sum
