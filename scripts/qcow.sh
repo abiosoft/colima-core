@@ -67,7 +67,6 @@ install_packages() (
 
     # containerd
     if [ "$RUNTIME" == "containerd" ]; then
-        chroot_exec apt-get install -y containerd
         (
             cd /tmp
             tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
