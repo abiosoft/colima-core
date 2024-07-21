@@ -21,7 +21,7 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v2
@@ -29,14 +29,44 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Build for x86_64
+      - name: Build for x86_64 (none)
         run: |
-          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=none
           ls -lah dist/img
 
-      - name: Build for aarch64
+      - name: Build for x86_64 (docker)
         run: |
-          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION}
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=docker
+          ls -lah dist/img
+
+      - name: Build for x86_64 (containerd)
+        run: |
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=containerd
+          ls -lah dist/img
+
+      - name: Build for x86_64 (incus)
+        run: |
+          make qcow OS_ARCH=x86_64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=incus
+          ls -lah dist/img
+
+      - name: Build for aarch64 (none)
+        run: |
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=none
+          ls -lah dist/img
+
+      - name: Build for aarch64 (docker)
+        run: |
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=docker
+          ls -lah dist/img
+
+      - name: Build for aarch64 (containerd)
+        run: |
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=containerd
+          ls -lah dist/img
+
+      - name: Build for aarch64 (incus)
+        run: |
+          make qcow OS_ARCH=aarch64 UBUNTU_CODENAME=${UBUNTU_CODENAME} UBUNTU_VERSION=${UBUNTU_VERSION} DOCKER_VERSION=${DOCKER_VERSION} BINFMT_VERSION=${BINFMT_VERSION} BINFMT_QEMU_VERSION=${BINFMT_QEMU_VERSION} RUNTIME=incus
           ls -lah dist/img
 
       - name: Create release
@@ -48,7 +78,11 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           gh release create "${tag}" --draft --title "${tag}"
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64.qcow2.sha512sum
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2
-          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-none.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-none.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-none.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-none.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-docker.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-docker.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-docker.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-docker.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-containerd.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-containerd.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-containerd.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-containerd.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-incus.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-amd64-incus.qcow2.sha512sum
+          dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-incus.qcow2 dist/img/ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-arm64-incus.qcow2.sha512sum

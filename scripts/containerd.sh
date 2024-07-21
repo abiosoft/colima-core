@@ -41,11 +41,10 @@ create_archive() (
     # move required components
     FILE="containerd-utils-${1}.tar.gz"
     tar cfz $FILE \
-        bin/nerdctl \
-        bin/buildkitd \
-        bin/buildctl \
-        lib/systemd/system/buildkit.service \
-        libexec/cni
+        bin \
+        lib \
+        libexec \
+        share
 
     shasum -a 512 "${FILE}" >"${FILE}.sha512sum"
 )
