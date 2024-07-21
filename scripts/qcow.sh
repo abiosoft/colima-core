@@ -55,6 +55,13 @@ install_packages() (
     chroot_exec apt-get update
     chroot_exec apt-get install -y "$@"
 
+    # none
+    if [ "$RUNTIME" == "none" ]; then
+        (
+            chroot_exec apt-get install -y htop nano neovim inetutils-ping net-tools
+        )
+    fi
+
     # docker
     if [ "$RUNTIME" == "docker" ]; then
         (
@@ -91,7 +98,8 @@ Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF'
             chroot_exec apt-get update
-            chroot_exec apt-get install -y incus incus-ui-canonical
+            chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux
+            chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux
         )
     fi
 
@@ -99,7 +107,7 @@ EOF'
     chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
 
     chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session dmsetup liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
-    chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades xz-utils
+    chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades
 
     chroot_exec apt-get autoremove -y
     chroot_exec apt-get clean -y

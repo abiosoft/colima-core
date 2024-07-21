@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [ "$RUNTIME" != "containerd" ]; then
+    exit 0
+fi
+
 set -ex
 
 SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
