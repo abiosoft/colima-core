@@ -127,10 +127,9 @@ EOF'
     chroot_exec umount /dev/pts
     chroot_exec umount /proc
 
-    # TODO: restore when slow disk expansion issue is resolved
     # fill partition with zeros, to recover space during compression
-    # chroot_exec dd if=/dev/zero of=/root/zero || echo done
-    # chroot_exec rm -f /root/zero
+    chroot_exec dd if=/dev/zero of=/root/zero || echo done
+    chroot_exec rm -f /root/zero
 )
 
 compress_file() (
