@@ -55,10 +55,14 @@ install_packages() (
     chroot_exec apt-get update
     chroot_exec apt-get install -y "$@"
 
+    # packages common to all runtimes, to prevent from final purging
+    chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
+
     # none
     if [ "$RUNTIME" == "none" ]; then
         (
-            chroot_exec apt-get install -y htop nano neovim inetutils-ping net-tools
+            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet neovim nano
+            chroot_exec apt-get purge -y dmsetup xz-utils
         )
     fi
 
@@ -69,6 +73,7 @@ install_packages() (
             chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
             chroot_exec rm /tmp/get-docker.sh
             chroot_exec apt-mark hold docker-ce docker-ce-cli containerd.io
+            chroot_exec apt-get purge -y dmsetup xz-utils
         )
     fi
 
@@ -79,6 +84,7 @@ install_packages() (
             tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
             chroot_exec mkdir -p /opt/cni
             chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
+            chroot_exec apt-get purge -y dmsetup xz-utils
         )
     fi
 
@@ -98,15 +104,13 @@ Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF'
             chroot_exec apt-get update
-            chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs
-            chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs
+            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet neovim nano
+            chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2
+            chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2
         )
     fi
 
-    # mark packages as dependencies so that autoremove does not uninstall them
-    chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
-
-    chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session dmsetup liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
+    chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
     chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades
 
     chroot_exec apt-get autoremove -y
