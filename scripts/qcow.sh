@@ -51,17 +51,16 @@ install_packages() (
     chroot_exec mv /etc/resolv.conf /etc/resolv.conf.bak
     echo 'nameserver 1.1.1.1' >$CHROOT_DIR/etc/resolv.conf
 
-    # packages
+    # prepare packages
     chroot_exec apt-get update
-    chroot_exec apt-get install -y "$@"
 
     # packages common to all runtimes, to prevent from final purging
-    chroot_exec apt-get install -y cloud-init lsb-release python3-apt gnupg curl wget
+    chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget
 
     # none
     if [ "$RUNTIME" == "none" ]; then
         (
-            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet neovim nano
+            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
             chroot_exec apt-get purge -y dmsetup xz-utils
         )
     fi
@@ -104,9 +103,9 @@ Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF'
             chroot_exec apt-get update
-            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet neovim nano
-            chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2
-            chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2
+            chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
+            chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools
+            chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools
         )
     fi
 
@@ -149,6 +148,6 @@ compress_file() (
 install_dependencies
 convert_file
 mount_partition "$(extract_partition_offset)"
-install_packages iptables socat sshfs
+install_packages
 unmount_partition
 compress_file
