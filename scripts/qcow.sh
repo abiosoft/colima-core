@@ -120,8 +120,8 @@ EOF'
     (
         cd /tmp
         tar xfz /build/dist/binfmt/binfmt-${ARCH}.tar.gz
-        chown root:root binfmt qemu-${BINFMT_ARCH}
-        mv binfmt qemu-${BINFMT_ARCH} ${CHROOT_DIR}/usr/bin
+        chown root:root binfmt qemu-i386 qemu-${BINFMT_ARCH}
+        mv binfmt qemu-i386 qemu-${BINFMT_ARCH} ${CHROOT_DIR}/usr/bin
     )
 
     # clean traces

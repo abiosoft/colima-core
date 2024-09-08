@@ -38,6 +38,7 @@ create_archive() (
     FILE="binfmt-${1}.tar.gz"
     tar cfz $FILE \
         binfmt \
+        qemu-i386 \
         qemu-${2}
 
     shasum -a 512 "${FILE}" >"${FILE}.sha512sum"
