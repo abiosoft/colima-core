@@ -11,8 +11,8 @@ RUNTIME ?= docker
 DOCKER_VERSION=27.3.1
 
 # containerd dependency
-NERDCTL_VERSION ?= 1.7.7
-FLANNEL_VERSION ?= 1.2.0
+NERDCTL_VERSION ?= 2.0.0
+FLANNEL_VERSION ?= 1.6.0-flannel1
 
 # architecture defaults to the current system's.
 OS_ARCH ?= $(shell uname -m)
