@@ -1,18 +1,18 @@
 # core dependency
 UBUNTU_VERSION ?= 24.04
 UBUNTU_CODENAME ?= noble
-BINFMT_VERSION ?= deploy/v7.0.0-28
-BINFMT_QEMU_VERSION ?= 7.0.0
+BINFMT_VERSION ?= deploy/v9.2.2-52
+BINFMT_QEMU_VERSION ?= 9.2.2
 
 # runtime
 RUNTIME ?= docker
 
 # docker
-DOCKER_VERSION=27.4.0
+DOCKER_VERSION=28.3.3
 
 # containerd dependency
-NERDCTL_VERSION ?= 2.0.2
-FLANNEL_VERSION ?= 1.6.0-flannel1
+NERDCTL_VERSION ?= 2.1.3
+FLANNEL_VERSION ?= 1.7.1-flannel2
 
 # architecture defaults to the current system's.
 OS_ARCH ?= $(shell uname -m)
