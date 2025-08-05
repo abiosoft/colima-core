@@ -1,8 +1,8 @@
 # core dependency
 UBUNTU_VERSION ?= 24.04
 UBUNTU_CODENAME ?= noble
-BINFMT_VERSION ?= deploy/v9.2.2-52
-BINFMT_QEMU_VERSION ?= 9.2.2
+BINFMT_VERSION ?= deploy/v7.0.0-28
+BINFMT_QEMU_VERSION ?= 7.0.0
 
 # runtime
 RUNTIME ?= docker
