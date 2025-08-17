@@ -55,7 +55,7 @@ install_packages() (
     chroot_exec apt-get update
 
     # packages common to all runtimes, to prevent from final purging
-    chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget
+    chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq
 
     # none
     if [ "$RUNTIME" == "none" ]; then
@@ -110,7 +110,7 @@ EOF'
     fi
 
     chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
-    chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades
+    chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades systemd-resolved
 
     chroot_exec apt-get autoremove -y
     chroot_exec apt-get clean -y
