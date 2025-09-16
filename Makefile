@@ -8,10 +8,10 @@ BINFMT_QEMU_VERSION ?= 7.0.0
 RUNTIME ?= docker
 
 # docker
-DOCKER_VERSION=28.3.3
+DOCKER_VERSION=28.4.0
 
 # containerd dependency
-NERDCTL_VERSION ?= 2.1.3
+NERDCTL_VERSION ?= 2.1.4
 FLANNEL_VERSION ?= 1.7.1-flannel2
 
 # architecture defaults to the current system's.
