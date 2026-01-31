@@ -18,7 +18,7 @@ FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
     apt-get update
-    apt-get install -y file fdisk libdigest-sha-perl qemu-utils
+    apt-get install -y file fdisk libdigest-sha-perl qemu-utils zerofree
 )
 
 convert_file() (
@@ -36,6 +36,13 @@ mount_partition() (
 
 unmount_partition() (
     umount $CHROOT_DIR
+)
+
+zerofree_partition() (
+    # zero unused blocks for better compression
+    LOOP_DEV=$(losetup -f --show -o $(($1 * 512)) $FILE.raw)
+    zerofree -v $LOOP_DEV
+    losetup -d $LOOP_DEV
 )
 
 chroot_exec() (
@@ -111,10 +118,26 @@ EOF'
 
     chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
     chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades systemd-resolved
+    chroot_exec apt-get purge -y fwupd packagekit command-not-found byobu motd-news-config update-notifier-common
 
     chroot_exec apt-get autoremove -y
     chroot_exec apt-get clean -y
     chroot_exec sh -c "rm -rf /var/lib/apt/lists/* /var/cache/apt/*"
+
+    # remove documentation, man pages, and locales to save space
+    chroot_exec sh -c "rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/*"
+    chroot_exec sh -c "rm -rf /usr/share/lintian/* /usr/share/linda/*"
+    chroot_exec sh -c "find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' -exec rm -rf {} +"
+
+    # remove python cache files
+    chroot_exec sh -c "find /usr -type d -name __pycache__ -exec rm -rf {} +"
+    chroot_exec sh -c "find /usr -type f -name '*.pyc' -delete 2>/dev/null"
+
+    # clear logs and temporary files
+    chroot_exec sh -c "rm -rf /var/log/* /var/log/journal/* /tmp/* /var/tmp/*"
+
+    # strip debug symbols from binaries
+    chroot_exec sh -c "find /usr -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null"
 
     # binfmt
     (
@@ -129,15 +152,11 @@ EOF'
     chroot_exec mv /etc/resolv.conf.bak /etc/resolv.conf
     chroot_exec umount /dev/pts
     chroot_exec umount /proc
-
-    # fill partition with zeros, to recover space during compression
-    chroot_exec dd if=/dev/zero of=/root/zero || echo done
-    chroot_exec rm -f /root/zero
 )
 
 compress_file() (
     qcow_file="${FILE}-${RUNTIME}"
-    qemu-img convert -p -f raw -O qcow2 -c $FILE.raw $qcow_file.qcow2
+    qemu-img convert -p -f raw -O qcow2 -c -o compression_type=zstd $FILE.raw $qcow_file.qcow2
     dir="$(dirname $qcow_file)"
     filename="$(basename $qcow_file)"
     (cd $dir && shasum -a 512 "${filename}.qcow2" >"${filename}.qcow2.sha512sum")
@@ -147,7 +166,9 @@ compress_file() (
 # perform all actions
 install_dependencies
 convert_file
-mount_partition "$(extract_partition_offset)"
+PARTITION_OFFSET="$(extract_partition_offset)"
+mount_partition "$PARTITION_OFFSET"
 install_packages
 unmount_partition
+zerofree_partition "$PARTITION_OFFSET"
 compress_file
