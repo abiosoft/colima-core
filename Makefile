@@ -8,11 +8,11 @@ BINFMT_QEMU_VERSION ?= 7.0.0
 RUNTIME ?= docker
 
 # docker
-DOCKER_VERSION=28.4.0
+DOCKER_VERSION=29.2.0
 
 # containerd dependency
-NERDCTL_VERSION ?= 2.1.4
-FLANNEL_VERSION ?= 1.7.1-flannel2
+NERDCTL_VERSION ?= 2.2.1
+FLANNEL_VERSION ?= 1.9.0-flannel1
 
 # architecture defaults to the current system's.
 OS_ARCH ?= $(shell uname -m)
