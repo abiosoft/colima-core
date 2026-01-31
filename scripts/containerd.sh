@@ -29,7 +29,7 @@ download_containerd() (
 
 download_flannel() (
     # download archive
-    FILE="cni-plugin-flannel-linux-${1}-v${FLANNEL_VERSION}.tgz"
+    FILE="cni-plugin-flannel-linux-${1}-v${FLANNEL_MINI_VERSION}.tgz"
     URL="https://github.com/flannel-io/cni-plugin/releases/download/v${FLANNEL_VERSION}/${FILE}"
     curl -LO $URL
 
