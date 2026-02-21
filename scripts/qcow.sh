@@ -124,6 +124,12 @@ EOF'
         mv binfmt qemu-i386 qemu-${BINFMT_ARCH} ${CHROOT_DIR}/usr/bin
     )
 
+    # enable vsock modules at boot
+    cat > ${CHROOT_DIR}/etc/modules-load.d/vsock.conf <<EOF
+vsock
+virtio_vsock
+EOF
+
     # clean traces
     chroot_exec rm /etc/resolv.conf
     chroot_exec mv /etc/resolv.conf.bak /etc/resolv.conf
