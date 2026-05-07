@@ -1,6 +1,6 @@
 # core dependency
-UBUNTU_VERSION ?= 24.04
-UBUNTU_CODENAME ?= noble
+UBUNTU_VERSION ?= 26.04
+UBUNTU_CODENAME ?= resolute
 BINFMT_VERSION ?= deploy/v7.0.0-28
 BINFMT_QEMU_VERSION ?= 7.0.0
 
@@ -8,12 +8,12 @@ BINFMT_QEMU_VERSION ?= 7.0.0
 RUNTIME ?= docker
 
 # docker
-DOCKER_VERSION=29.3.1
+DOCKER_VERSION=29.4.3
 
 # containerd dependency
 NERDCTL_VERSION ?= 2.2.2
-FLANNEL_VERSION ?= 1.9.0-flannel1
-FLANNEL_MINI_VERSION ?= 1.9.0
+FLANNEL_VERSION ?= 1.9.1-flannel1
+FLANNEL_MINI_VERSION ?= 1.9.1
 
 # architecture defaults to the current system's.
 OS_ARCH ?= $(shell uname -m)
