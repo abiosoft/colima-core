@@ -1,6 +1,9 @@
 # image and tool versions
 include dependencies.env
 
+# which dist image to build (debian or ubuntu)
+DIST ?= ubuntu
+
 # runtime
 RUNTIME ?= docker
 
@@ -22,24 +25,29 @@ ifeq ($(strip $(OS_ARCH)),aarch64)
 BINFMT_ARCH = x86_64
 endif
 
+export ARCH
+export BINFMT_ARCH
+
 #
 # targets
 #
 
 all: image
 
-.PHONY: clean
+.PHONY: clean cloud-image
 clean:
 	rm -rf dist
 
-cloud-image:
-	ARCH=$(ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) UBUNTU_CODENAME=$(UBUNTU_CODENAME) scripts/cloud-image.sh
+cloud-image: $(DIST)-cloud-image
+
+ubuntu-cloud-image:
+	UBUNTU_VERSION=$(UBUNTU_VERSION) UBUNTU_CODENAME=$(UBUNTU_CODENAME) scripts/cloud-image.sh
 
 binfmt:
-	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) BINFMT_VERSION=$(BINFMT_VERSION) BINFMT_QEMU_VERSION=$(BINFMT_QEMU_VERSION) scripts/binfmt.sh
+	BINFMT_VERSION=$(BINFMT_VERSION) BINFMT_QEMU_VERSION=$(BINFMT_QEMU_VERSION) scripts/binfmt.sh
 
 containerd:
-	ARCH=$(ARCH) NERDCTL_VERSION=$(NERDCTL_VERSION) FLANNEL_VERSION=$(FLANNEL_VERSION) FLANNEL_MINI_VERSION=$(FLANNEL_MINI_VERSION) RUNTIME=$(RUNTIME) scripts/containerd.sh
+	NERDCTL_VERSION=$(NERDCTL_VERSION) FLANNEL_VERSION=$(FLANNEL_VERSION) FLANNEL_MINI_VERSION=$(FLANNEL_MINI_VERSION) RUNTIME=$(RUNTIME) scripts/containerd.sh
 
-image: cloud-image binfmt containerd
-	ARCH=$(ARCH) BINFMT_ARCH=$(BINFMT_ARCH) UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$(RUNTIME) scripts/image.docker.sh
+image: $(DIST)-cloud-image binfmt containerd
+	UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$(RUNTIME) scripts/image.docker.sh
