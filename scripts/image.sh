@@ -17,8 +17,8 @@ CHROOT_DIR=/mnt/colima-img
 FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
-	apt-get update
-	apt-get install -y file fdisk libdigest-sha-perl qemu-utils
+	apt-get -qq update
+	apt-get -qq install -y file fdisk libdigest-sha-perl qemu-utils
 )
 
 convert_file() (
@@ -52,16 +52,16 @@ install_packages() (
 	echo 'nameserver 1.1.1.1' >$CHROOT_DIR/etc/resolv.conf
 
 	# prepare packages
-	chroot_exec apt-get update
+	chroot_exec apt-get -qq update
 
 	# packages common to all runtimes, to prevent from final purging
-	chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs
+	chroot_exec apt-get -qq install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs
 
 	# none
 	if [ "$RUNTIME" == "none" ]; then
 		(
-			chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
-			chroot_exec apt-get purge -y dmsetup xz-utils
+			chroot_exec apt-get -qq install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
+			chroot_exec apt-get -qq purge -y dmsetup xz-utils
 		)
 	fi
 
@@ -72,7 +72,7 @@ install_packages() (
 			chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
 			chroot_exec rm /tmp/get-docker.sh
 			chroot_exec apt-mark hold docker-ce docker-ce-cli containerd.io
-			chroot_exec apt-get purge -y dmsetup xz-utils
+			chroot_exec apt-get -qq purge -y dmsetup xz-utils
 		)
 	fi
 
@@ -83,7 +83,7 @@ install_packages() (
 			tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
 			chroot_exec mkdir -p /opt/cni
 			chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
-			chroot_exec apt-get purge -y dmsetup xz-utils
+			chroot_exec apt-get -qq purge -y dmsetup xz-utils
 		)
 	fi
 
@@ -102,15 +102,15 @@ Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF'
-			chroot_exec apt-get update
-			chroot_exec apt-get install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
-			chroot_exec apt-get install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools
+			chroot_exec apt-get -qq update
+			chroot_exec apt-get -qq install -y htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
+			chroot_exec apt-get -qq install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools
 			chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools
 		)
 	fi
 
-	chroot_exec apt-get purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
-	chroot_exec apt-get purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades systemd-resolved
+	chroot_exec apt-get -qq purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl lxd-agent-loader lxd-installer parted pciutils pollinate python3-gi snapd ssh-import-id
+	chroot_exec apt-get -qq purge -y ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core unattended-upgrades systemd-resolved
 
 	chroot_exec apt-get autoremove -y
 	chroot_exec apt-get clean -y
