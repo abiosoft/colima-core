@@ -90,6 +90,12 @@ $(1):
 	mv -f $$@.download $$@
 endef
 
+# image builder container image
+DOCKER_BUILD_IMAGE = scripts/.build-image-stamp
+DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
+DOCKER_BUILD_IMAGE_TAG = colima-core-builder:latest
+
+IMAGE_DEPENDENCIES = $(DOCKER_BUILD_IMAGE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
 #
 # targets
 #
@@ -101,11 +107,12 @@ image: $(RUNTIME)
 
 all: $(RUNTIMES)
 
+# rm build targets
 clean:
-	@echo "target: $@"
-	rm -rf dist/img/*.raw.gz*
+	rm -rf $(IMAGE_DEPENDENCIES) dist/img/*.raw.gz*
 
-distclean:
+# rm + cache
+distclean: clean
 	rm -rf dist
 
 # base image
@@ -163,9 +170,22 @@ $(CONTAINERD_ARCHIVE): $(NERDCTL_FILE) $(FLANNEL_FILE)
 $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
+# builder
+$(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
+	docker build --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
+
 # images
-$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum scripts/image.docker.sh scripts/image.sh
-	UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$* scripts/image.docker.sh
+$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
+	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
+	docker run --rm --privileged \
+	  --platform linux/$(ARCH) \
+	  --volume $(CURDIR):/build \
+	  --env BINFMT_ARCHIVE=$(BINFMT_ARCHIVE) \
+	  --env CONTAINERD_ARCHIVE=$(CONTAINERD_ARCHIVE) \
+	  --env IMAGE_FILE=$(IMAGE_FILE) \
+	  --env DOCKER_VERSION=$(DOCKER_VERSION) \
+	  --env RUNTIME=$* \
+	  $(DOCKER_BUILD_IMAGE_TAG)
 	touch "$@"
 
 $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz

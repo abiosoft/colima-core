@@ -6,27 +6,20 @@ set -eux
 export DEBIAN_FRONTEND=noninteractive
 
 # external variables that must be set
-echo vars: $ARCH $BINFMT_ARCH $UBUNTU_VERSION $DOCKER_VERSION $RUNTIME
+echo vars: $DOCKER_VERSION $RUNTIME
 
-FILENAME="ubuntu-${UBUNTU_VERSION}-minimal-cloudimg-${ARCH}"
-
-SCRIPT_DIR=$(realpath "$(dirname "$(dirname $0)")")
-IMG_DIR="$SCRIPT_DIR/dist/img"
+BUILD_DIR="/build"
 CHROOT_DIR=/mnt/colima-img
 
-FILE="$IMG_DIR/$FILENAME"
-
-install_dependencies() (
-	apt-get -qq update
-	apt-get -qq install -y file kpartx libdigest-sha-perl qemu-utils pigz
-)
+IMAGE_FILE="${BUILD_DIR}/${IMAGE_FILE}"
+RAW_FILE="${IMAGE_FILE%.*}-${RUNTIME}.raw"
 
 convert_file() (
-	qemu-img convert -p -f qcow2 -O raw $FILE.img $FILE.raw
+	qemu-img convert -p -f qcow2 -O raw "${IMAGE_FILE}" "${RAW_FILE}"
 )
 
 mount_partition() {
-	LOOP_DEV=$(losetup -Pf --show "$FILE.raw")
+	LOOP_DEV=$(losetup -Pf --show "${RAW_FILE}")
 	kpartx -avs "$LOOP_DEV"
 	LOOP_NAME=$(basename "$LOOP_DEV")
 	ROOT_PART="/dev/mapper/${LOOP_NAME}p1"
@@ -101,7 +94,7 @@ install_packages() (
 	if [ "$RUNTIME" == "containerd" ]; then
 		(
 			cd /tmp
-			tar Cxfz ${CHROOT_DIR}/usr/local /build/dist/containerd/containerd-utils-${ARCH}.tar.gz
+			tar Cxfz ${CHROOT_DIR}/usr/local "${BUILD_DIR}/${CONTAINERD_ARCHIVE}"
 			chroot_exec mkdir -p /opt/cni
 			chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
 			chroot_exec apt-get -qq purge -y dmsetup xz-utils
@@ -140,9 +133,9 @@ EOF'
 	# binfmt
 	(
 		cd /tmp
-		tar xfz /build/dist/binfmt/binfmt-${ARCH}.tar.gz
-		chown root:root binfmt qemu-i386 qemu-${BINFMT_ARCH}
-		mv binfmt qemu-i386 qemu-${BINFMT_ARCH} ${CHROOT_DIR}/usr/bin
+		tar xfz "${BUILD_DIR}/${BINFMT_ARCHIVE}"
+		chown root:root binfmt qemu-*
+		mv binfmt qemu-* ${CHROOT_DIR}/usr/bin
 	)
 
 	# enable vsock modules at boot
@@ -152,6 +145,7 @@ virtio_vsock
 EOF
 
 	# clean traces
+	chroot_exec find /tmp -mindepth 1 -delete
 	chroot_exec rm /etc/resolv.conf
 	chroot_exec mv /etc/resolv.conf.bak /etc/resolv.conf
 	chroot_exec umount /dev/pts
@@ -163,16 +157,11 @@ EOF
 )
 
 compress_file() (
-	raw_file="${FILE}-${RUNTIME}.raw"
-	mv $FILE.raw $raw_file
-	pigz -9 -n -f $raw_file
-	dir="$(dirname $raw_file)"
-	filename="$(basename $raw_file)"
-	(cd $dir && shasum -a 512 "${filename}.gz" >"${filename}.gz.sha512sum")
+	pigz -9 -n -f "${RAW_FILE}"
+	shasum -a 512 "${RAW_FILE}.gz" >"${RAW_FILE}.gz.sha512sum"
 )
 
 # perform all actions
-install_dependencies
 convert_file
 mount_partition
 install_packages
