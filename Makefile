@@ -164,7 +164,7 @@ $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
 # images
-$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
+$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum scripts/image.docker.sh scripts/image.sh
 	UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$* scripts/image.docker.sh
 	touch "$@"
 
