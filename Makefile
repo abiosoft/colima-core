@@ -108,16 +108,16 @@ $(1):
 endef
 
 # image builder container image
-DOCKER_BUILD_IMAGE = scripts/.build-image-stamp
+DOCKER_BUILD_IMAGE = scripts/.build-image-stamp-$(ARCH)
 DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
-DOCKER_BUILD_IMAGE_TAG = colima-core-builder:latest
+DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(ARCH)
 
 IMAGE_DEPENDENCIES = $(DOCKER_BUILD_IMAGE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
 #
 # targets
 #
 
-.PHONY: clean distclean image $(RUNTIMES)
+.PHONY: clean distclean save-builder image $(RUNTIMES)
 
 # deprecated (default) target
 image: $(RUNTIME)
@@ -188,8 +188,11 @@ $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
 # builder
+save-builder: $(DOCKER_BUILD_IMAGE)
+	docker save $(DOCKER_BUILD_IMAGE_TAG) -o builder-$(OS_ARCH).tar
+
 $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
-	docker build --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
+	docker build --platform linux/$(ARCH) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
 
 # images
 $(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile

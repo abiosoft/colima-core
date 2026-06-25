@@ -14,7 +14,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  builder:
+    strategy:
+      max-parallel: 2
+      fail-fast: true
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            os: ubuntu-latest
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    name: builder-${{ matrix.arch }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build
+        run: make save-builder
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: builder-${{ matrix.arch }}
+          path: builder-${{ matrix.arch }}.tar
+          overwrite: true
+
+  image:
     strategy:
       max-parallel: 1
       fail-fast: true
@@ -28,7 +58,8 @@ jobs:
           - arch: aarch64
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
-    name: build-${{ matrix.arch }}-${{ matrix.dist }}-${{ matrix.runtime }}
+    needs: [builder]
+    name: img-${{ matrix.arch }}-${{ matrix.dist }}-${{ matrix.runtime }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -36,9 +67,14 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: builder-${{ matrix.arch }}
+
       - name: Build
         run: |
-          make DEBUG=1 DIST=${{ matrix.dist }} ${{ matrix.runtime }}
+          docker load -i builder-${{ matrix.arch }}.tar
+          make DIST=${{ matrix.dist }} ${{ matrix.runtime }}
           ls -lah dist/img
 
       - name: Upload artifact
@@ -52,7 +88,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [image]
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
