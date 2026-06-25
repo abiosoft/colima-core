@@ -123,7 +123,7 @@ distclean: clean
 # base image
 $(IMAGE_FILE):
 	@echo "target: $@"
-	mkdir -p dist/img && cd dist/img && curl -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
+	mkdir -p $(@D) && curl -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
 
 $(IMAGE_SHA_FILE): $(IMAGE_FILE)
 	@echo "target: $@"
