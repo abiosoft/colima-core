@@ -173,11 +173,11 @@ EOF
 
 	# clean traces
 	chroot_exec find /tmp -mindepth 1 -delete
-	chroot_exec rm /etc/resolv.conf
-	chroot_exec mv /etc/resolv.conf.bak /etc/resolv.conf
+	chroot_exec mv -f /etc/resolv.conf.bak /etc/resolv.conf
+	truncate -s 0 $CHROOT_DIR/etc/machine-id
 
 	# fill partition with zeros, to recover space during compression
-	chroot_exec dd if=/dev/zero of=/root/zero || echo done
+	chroot_exec dd if=/dev/zero of=/root/zero ||:
 	chroot_exec rm -f /root/zero
 	chroot_exec fstrim -av
 )
