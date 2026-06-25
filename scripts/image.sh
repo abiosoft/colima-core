@@ -126,6 +126,10 @@ EOF
 	# incus
 	if [ "$RUNTIME" == "incus" ]; then
 		(
+			# Debian ZFS support is in contrib
+			if [ "${DIST}" == "debian" ] ; then
+				chroot_exec sed -i 's/Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources
+			fi
 			chroot_exec mkdir -p /etc/apt/keyrings/
 			chroot_exec curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
 			chroot_exec sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
