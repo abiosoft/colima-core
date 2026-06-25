@@ -18,21 +18,42 @@ FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
 	apt-get -qq update
-	apt-get -qq install -y file fdisk libdigest-sha-perl qemu-utils pigz
+	apt-get -qq install -y file kpartx libdigest-sha-perl qemu-utils pigz
 )
 
 convert_file() (
 	qemu-img convert -p -f qcow2 -O raw $FILE.img $FILE.raw
 )
 
-extract_partition_offset() (
-	fdisk -l $FILE.raw | grep "$FILE.raw1 " | awk -F' ' '{print $2}'
-)
-
-mount_partition() (
+mount_partition() {
+	LOOP_DEV=$(losetup -Pf --show "$FILE.raw")
+	kpartx -avs "$LOOP_DEV"
+	LOOP_NAME=$(basename "$LOOP_DEV")
+	ROOT_PART="/dev/mapper/${LOOP_NAME}p1"
+	ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
+	mkdir -p "/dev/disk/by-uuid"
+	ln -s "/dev/mapper/${LOOP_NAME}p1" "/dev/disk/by-uuid/$ROOT_UUID"
 	mkdir -p $CHROOT_DIR
-	mount -o loop,offset=$(($1 * 512)) $FILE.raw $CHROOT_DIR
-)
+	mount "$ROOT_PART" "$CHROOT_DIR"
+}
+
+cleanup() {
+	if [ -n "$CHROOT_DIR" ] && mountpoint -q "$CHROOT_DIR"; then
+		umount "$CHROOT_DIR/dev/pts" ||:
+		umount "$CHROOT_DIR/proc" ||:
+		umount "$CHROOT_DIR"
+	fi
+	if [ -n "$ROOT_UUID" ] && [ -h "/dev/disk/by-uuid/$ROOT_UUID" ]; then
+		rm -f "/dev/disk/by-uuid/$ROOT_UUID"
+	fi
+	if [ -n "$LOOP_DEV" ]; then
+		kpartx -dvs "$LOOP_DEV" 2>/dev/null || true
+	fi
+	if [ -n "$LOOP_DEV" ] && losetup "$LOOP_DEV" >/dev/null 2>&1; then
+		losetup -d "$LOOP_DEV"
+	fi
+}
+trap 'cleanup' EXIT
 
 unmount_partition() (
 	umount $CHROOT_DIR
@@ -153,7 +174,7 @@ compress_file() (
 # perform all actions
 install_dependencies
 convert_file
-mount_partition "$(extract_partition_offset)"
+mount_partition
 install_packages
 unmount_partition
 compress_file
