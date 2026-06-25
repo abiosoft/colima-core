@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     strategy:
-      max-parallel: 4
+      max-parallel: 1
       fail-fast: true
       matrix:
         arch: [x86_64, aarch64]
@@ -38,7 +38,7 @@ jobs:
 
       - name: Build
         run: |
-          make DIST=${{ matrix.dist }} OS_ARCH=${{ matrix.arch }} ${{ matrix.runtime }}
+          make DEBUG=1 DIST=${{ matrix.dist }} ${{ matrix.runtime }}
           ls -lah dist/img
 
       - name: Upload artifact

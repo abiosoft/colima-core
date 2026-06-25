@@ -5,6 +5,17 @@ UNAME_S := $(shell uname -s)
 
 to_upper = $(shell echo '$1' | tr '[:lower:]' '[:upper:]')
 
+ifeq ($(MAKE_TERMOUT),)
+  # Make < 4 doesn't set MAKE_TERMOUT
+  INTERACTIVE ?= $(shell [ -t 0 ] && echo 1)
+else
+  INTERACTIVE ?= 1
+endif
+
+ifeq ($(INTERACTIVE),1)
+DOCKER_RUN_ARGS := -i --tty
+endif
+
 ifeq ($(UNAME_S),Darwin)
     # macOS uses BSD stat
     PRINT_STATS_CMD = stat -f "%N%n |- %z bytes%n '- %Sm"
@@ -85,10 +96,11 @@ IMAGE_SHA_SIZE ?= $(patsubst .sha%sum,%,$(suffix $(IMAGE_SHA_FILE)))
 
 define download_and_verify
 $(1):
-	@echo "target: $$@"
+	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
 	curl -o$$@.download -L $(2) && \
-	tar $$(TARV)xzOf $$@.download &> /dev/null || { \
+	$$(PRINT_STATS_CMD) $$@.download && \
+	tar -xzOf $$@.download >/dev/null || { \
 		echo >&2 "error downloading"; \
 		exit 1; \
 	}
@@ -151,7 +163,7 @@ $(BINFMT_ARCHIVE): $(BINFMT_FILE) $(BINFMT_QEMU_FILE)
 	rm -f '$@'
 	TMP_DIR=$$(mktemp -d); \
 	  trap 'rm -rf "$$TMP_DIR"' EXIT; \
-	  for f in $^; do tar $(TARX)zxf "$$f" -C "$$TMP_DIR"; done; \
+	  for f in $^; do tar $(TARV)zxf "$$f" -C "$$TMP_DIR"; done; \
 	  cd "$$TMP_DIR" && tar $(TARV)czf '$(CURDIR)/$@' binfmt qemu-i386 qemu-$(BINFMT_ARCH) || { \
 	    echo >&2 "failed to create $@" ; \
 	    rm -f '$(CURDIR)/$@'; exit 1; \
@@ -181,8 +193,8 @@ $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
 
 # images
 $(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
-	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
-	docker run --rm -i --tty --privileged \
+	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run $(DOCKER_RUN_ARGS) --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
+	docker run $(DOCKER_RUN_ARGS) --rm --privileged \
 	  --platform linux/$(ARCH) \
 	  --volume $(CURDIR):/build \
 	  --env DIST=$(DIST) \
@@ -195,7 +207,6 @@ $(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DO
 	  echo >&2 "failed to create $@"; \
 	  rm -f '$@'* ; exit 1; \
 	}
-	touch "$@"
 
 $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
 	$(PRINT_STATS_CMD) $<
