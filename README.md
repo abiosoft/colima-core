@@ -4,7 +4,7 @@ Dependencies for Colima
 
 ## Generating image
 
-Generate a raw disk image compressed with gzip (`.raw.gz`) for the OS architecture and default runtime (docker).
+Generate a raw disk image compressed with gzip (`.raw.gz`) for the OS architecture, default runtime (docker), and default OS (Ubuntu).
 
 ```sh
 make
@@ -29,4 +29,10 @@ Generate `.raw.gz` images for all runtimes.
 
 ```sh
 make all
+```
+
+Generate images based on Debian.
+
+```sh
+DIST=debian make
 ```

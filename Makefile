@@ -68,6 +68,11 @@ UBUNTU_IMAGE_BASE_URL ?= https://cloud-images.ubuntu.com/minimal/releases/$(UBUN
 UBUNTU_IMAGE_FILE ?= dist/img/ubuntu-$(UBUNTU_VERSION)-minimal-cloudimg-$(ARCH).img
 UBUNTU_IMAGE_SHA_FILE ?= $(UBUNTU_IMAGE_FILE).sha256sum
 
+# debian
+DEBIAN_IMAGE_BASE_URL ?= https://cloud.debian.org/images/cloud/$(DEBIAN_CODENAME)/$(DEBIAN_BUILD)
+DEBIAN_IMAGE_FILE ?= dist/img/debian-$(DEBIAN_VERSION)-genericcloud-$(ARCH)-$(DEBIAN_BUILD).qcow2
+DEBIAN_IMAGE_SHA_FILE ?= $(DEBIAN_IMAGE_FILE).sha512sum
+
 # DIST resolved variables
 IMAGE_BASE_URL ?= $($(call to_upper,$(DIST))_IMAGE_BASE_URL)
 IMAGE_FILE ?= $($(call to_upper,$(DIST))_IMAGE_FILE)
@@ -175,11 +180,12 @@ $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
 	docker build --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
 
 # images
-$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
+$(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
 	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
 	docker run --rm -i --tty --privileged \
 	  --platform linux/$(ARCH) \
 	  --volume $(CURDIR):/build \
+	  --env DIST=$(DIST) \
 	  --env BINFMT_ARCHIVE=$(BINFMT_ARCHIVE) \
 	  --env CONTAINERD_ARCHIVE=$(CONTAINERD_ARCHIVE) \
 	  --env IMAGE_FILE=$(IMAGE_FILE) \
