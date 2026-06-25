@@ -31,6 +31,7 @@ mount_partition() {
 }
 
 cleanup() {
+	rm -f "${RAW_FILE}"
 	if [ -n "$CHROOT_DIR" ] && mountpoint -q "$CHROOT_DIR"; then
 		umount "$CHROOT_DIR/dev/pts" ||:
 		umount "$CHROOT_DIR/proc" ||:

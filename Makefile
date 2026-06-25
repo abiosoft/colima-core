@@ -177,7 +177,7 @@ $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
 # images
 $(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
 	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
-	docker run --rm --privileged \
+	docker run --rm -i --tty --privileged \
 	  --platform linux/$(ARCH) \
 	  --volume $(CURDIR):/build \
 	  --env BINFMT_ARCHIVE=$(BINFMT_ARCHIVE) \
@@ -185,7 +185,10 @@ $(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(IMAGE_DEPE
 	  --env IMAGE_FILE=$(IMAGE_FILE) \
 	  --env DOCKER_VERSION=$(DOCKER_VERSION) \
 	  --env RUNTIME=$* \
-	  $(DOCKER_BUILD_IMAGE_TAG)
+	  $(DOCKER_BUILD_IMAGE_TAG) || { \
+	  echo >&2 "failed to create $@"; \
+	  rm -f '$@'* ; exit 1; \
+	}
 	touch "$@"
 
 $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
