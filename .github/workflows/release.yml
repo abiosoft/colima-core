@@ -37,7 +37,7 @@ jobs:
 
       - name: Build
         run: |
-          make image OS_ARCH=${{ matrix.arch }} RUNTIME=${{ matrix.runtime }}
+          make OS_ARCH=${{ matrix.arch }} ${{ matrix.runtime }}
           ls -lah dist/img
 
       - name: Upload artifact

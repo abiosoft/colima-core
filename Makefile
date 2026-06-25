@@ -1,7 +1,17 @@
 # image and tool versions
 include dependencies.env
 
+UNAME_S := $(shell uname -s)
+
 to_upper = $(shell echo '$1' | tr '[:lower:]' '[:upper:]')
+
+ifeq ($(UNAME_S),Darwin)
+    # macOS uses BSD stat
+    PRINT_STATS_CMD = stat -f "%N%n |- %z bytes%n '- %Sm"
+else
+    # Linux (and most others) use GNU stat
+    PRINT_STATS_CMD = stat -c "%N\n |- %s bytes\n '- %y"
+endif
 
 # quiet target commands by default
 ifeq ($(filter $(DEBUG),1 true),)
@@ -14,6 +24,7 @@ endif
 DIST ?= ubuntu
 
 # runtime
+RUNTIMES = docker containerd incus none
 RUNTIME ?= docker
 
 # architecture defaults to the current system's.
@@ -83,15 +94,21 @@ endef
 # targets
 #
 
-all: image
+.PHONY: clean distclean image $(RUNTIMES)
 
-.PHONY: clean cloud-image binfmt containerd image
+# deprecated (default) target
+image: $(RUNTIME)
+
+all: $(RUNTIMES)
+
 clean:
+	@echo "target: $@"
+	rm -rf dist/img/*.raw.gz*
+
+distclean:
 	rm -rf dist
 
 # base image
-cloud-image: $(IMAGE_SHA_FILE)
-
 $(IMAGE_FILE):
 	@echo "target: $@"
 	mkdir -p dist/img && cd dist/img && curl -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
@@ -117,8 +134,6 @@ $(IMAGE_SHA_FILE): $(IMAGE_FILE)
 	shasum -a 512 $< > $@
 
 # binfmt
-binfmt: $(BINFMT_ARCHIVE).sha512sum
-
 $(BINFMT_ARCHIVE): $(BINFMT_FILE) $(BINFMT_QEMU_FILE)
 	@echo "target: $@"
 	rm -f '$@'
@@ -134,8 +149,6 @@ $(eval $(call download_and_verify,$(BINFMT_FILE),$(BINFMT_URL)))
 $(eval $(call download_and_verify,$(BINFMT_QEMU_FILE),$(BINFMT_QEMU_URL)))
 
 # containerd
-containerd: $(CONTAINERD_ARCHIVE).sha512sum
-
 $(CONTAINERD_ARCHIVE): $(NERDCTL_FILE) $(FLANNEL_FILE)
 	@echo "target: $@"
 	rm -f '$@'
@@ -150,6 +163,10 @@ $(CONTAINERD_ARCHIVE): $(NERDCTL_FILE) $(FLANNEL_FILE)
 $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
-# primary target
-image: cloud-image binfmt containerd
-	UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$(RUNTIME) scripts/image.docker.sh
+# images
+$(basename $(UBUNTU_IMAGE_FILE))-%.raw.gz: $(UBUNTU_IMAGE_SHA_FILE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
+	UBUNTU_VERSION=$(UBUNTU_VERSION) DOCKER_VERSION=$(DOCKER_VERSION) RUNTIME=$* scripts/image.docker.sh
+	touch "$@"
+
+$(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
+	$(PRINT_STATS_CMD) $<
