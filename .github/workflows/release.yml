@@ -46,11 +46,10 @@ jobs:
 
   image:
     strategy:
-      max-parallel: 1
+      max-parallel: 4
       fail-fast: true
       matrix:
         arch: [x86_64, aarch64]
-        runtime: [none, docker, containerd, incus]
         dist: [ubuntu, debian]
         include:
           - arch: x86_64
@@ -59,7 +58,7 @@ jobs:
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     needs: [builder]
-    name: img-${{ matrix.arch }}-${{ matrix.dist }}-${{ matrix.runtime }}
+    name: img-${{ matrix.arch }}-${{ matrix.dist }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -74,14 +73,14 @@ jobs:
       - name: Build
         run: |
           docker load -i builder-${{ matrix.arch }}.tar
-          make DIST=${{ matrix.dist }} ${{ matrix.runtime }}
+          make DIST=${{ matrix.dist }} none docker containerd incus
           ls -lah dist/img
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: img-${{ matrix.arch }}-${{ matrix.dist}}-${{ matrix.runtime }}
-          path: dist/img/${{ matrix.dist}}-*-${{ matrix.runtime }}.*
+          name: img-${{ matrix.arch }}-${{ matrix.dist}}
+          path: dist/img/${{ matrix.dist}}-*-*.raw.*
           overwrite: true
           retention-days: 1
           compression-level: 0
