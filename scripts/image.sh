@@ -18,7 +18,7 @@ FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
 	apt-get -qq update
-	apt-get -qq install -y file fdisk libdigest-sha-perl qemu-utils
+	apt-get -qq install -y file fdisk libdigest-sha-perl qemu-utils pigz
 )
 
 convert_file() (
@@ -144,7 +144,7 @@ EOF
 compress_file() (
 	raw_file="${FILE}-${RUNTIME}.raw"
 	mv $FILE.raw $raw_file
-	gzip -9 -n -f $raw_file
+	pigz -9 -n -f $raw_file
 	dir="$(dirname $raw_file)"
 	filename="$(basename $raw_file)"
 	(cd $dir && shasum -a 512 "${filename}.gz" >"${filename}.gz.sha512sum")
