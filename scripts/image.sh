@@ -64,8 +64,50 @@ chroot_exec() (
 	chroot $CHROOT_DIR "$@"
 )
 
+apt_update_source() {
+	chroot_exec apt-get -qq update -y -o Dir::Etc::sourcelist="sources.list.d/${1}" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+}
+
+apt_keyring_zabbly() {
+	test -f "$CHROOT_DIR/etc/apt/keyrings/zabbly.asc" || {
+		chroot_exec install -m 0755 -d /etc/apt/keyrings
+		chroot_exec curl -fsSLo zabbly.asc https://pkgs.zabbly.com/key.asc
+		chroot_exec install -m 0644 zabbly.asc /etc/apt/keyrings/zabbly.asc
+		chroot_exec rm -f zabbly.asc
+	}
+}
+
+apt_source_zabbly_incus() {
+	apt_keyring_zabbly
+	chroot_exec sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/zabbly.asc
+EOF'
+	apt_update_source zabbly-incus-stable.sources
+}
+
+apt_source_zabbly_kernel() {
+	apt_keyring_zabbly
+	chroot_exec sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-kernel-stable.sources
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/kernel/stable
+Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/zabbly.asc
+EOF'
+	apt_update_source zabbly-kernel-stable.sources
+}
+
 install_packages() (
 	echo 'Dpkg::Use-Pty "0"; Dpkg::Progress-Fancy="0";' > $CHROOT_DIR/etc/apt/apt.conf.d/colima
+	DPKG_ARCH=$(chroot_exec dpkg --print-architecture)
 
 	# internet
 	chroot_exec mv /etc/resolv.conf /etc/resolv.conf.bak
@@ -75,6 +117,7 @@ install_packages() (
 	echo 'Binary::apt::APT::Keep-Downloaded-Packages "0";' > $CHROOT_DIR/etc/apt/apt.conf.d/01_nocache
 	echo 'APT::Install-Recommends "0"; APT::Install-Suggests "0"; Acquire::Retries "5";' >> $CHROOT_DIR/etc/apt/apt.conf.d/colima
 	if [ "${DIST}" == "debian" ] ; then
+		chroot_exec sed -i 's/Components: main$/Components: main contrib non-free-firmware/' /etc/apt/sources.list.d/debian.sources
 		chroot_exec apt-get -qq purge -y groff-base man-db manpages
 	fi
 	cat >$CHROOT_DIR/etc/dpkg/dpkg.cfg.d/01_nodoc <<"EOF"
@@ -126,23 +169,13 @@ EOF
 	# incus
 	if [ "$RUNTIME" == "incus" ]; then
 		(
-			# Debian ZFS support is in contrib
-			if [ "${DIST}" == "debian" ] ; then
-				chroot_exec sed -i 's/Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources
-			fi
-			chroot_exec mkdir -p /etc/apt/keyrings/
-			chroot_exec curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
-			chroot_exec sh -c 'cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
-Enabled: yes
-Types: deb
-URIs: https://pkgs.zabbly.com/incus/stable
-Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
-Components: main
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/zabbly.asc
+			apt_source_zabbly_incus
 
-EOF'
-			chroot_exec apt-get -qq update
+			if [ "${DIST}" == "debian" ] ; then
+				chroot_exec apt-get -qq install -y dpkg-dev "linux-headers-cloud-${DPKG_ARCH}"
+				chroot_exec apt-get -qq install -y zfs-dkms
+			fi
+
 			chroot_exec apt-get -qq install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools nftables
 			chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools nftables
 		)
@@ -156,6 +189,18 @@ EOF'
 	if [ "$DIST" == "ubuntu" ] ; then
 		chroot_exec apt-get -qq purge -y lxd-agent-loader lxd-installer ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core
 	fi
+
+	# cleanup any old kernel versions that may be been upgraded
+	KERNEL_VERSIONS=$(chroot_exec dpkg-query -W -f='${Package}\n' | grep -E '^linux-image-[0-9]' | sed 's/^linux-image-//' | sort -V)
+	LATEST_VERSION=$(echo "$KERNEL_VERSIONS" | tail -n 1)
+	for V in $KERNEL_VERSIONS; do
+		if [ "$V" != "$LATEST_VERSION" ]; then
+			chroot_exec apt-get -qq purge -y "linux-image-$V"
+			chroot_exec apt-get -qq purge -y "linux-headers-$V" ||:
+			chroot_exec apt-get -qq purge -y "linux-modules-$V" ||:
+			chroot_exec apt-get -qq purge -y "linux-modules-extra-$V" ||:
+		fi
+	done
 
 	chroot_exec apt-get autoremove -y
 	chroot_exec apt-get clean -y
