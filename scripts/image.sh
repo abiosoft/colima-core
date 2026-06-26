@@ -65,7 +65,7 @@ chroot_exec() (
 )
 
 apt_update_source() {
-	chroot_exec apt-get -qq update -y -o Dir::Etc::sourcelist="sources.list.d/${1}" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+	chroot_exec apt-get -q update -y -o Dir::Etc::sourcelist="sources.list.d/${1}" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
 }
 
 apt_keyring_zabbly() {
@@ -118,7 +118,7 @@ install_packages() (
 	echo 'APT::Install-Recommends "0"; APT::Install-Suggests "0"; Acquire::Retries "5";' >> $CHROOT_DIR/etc/apt/apt.conf.d/colima
 	if [ "${DIST}" == "debian" ] ; then
 		chroot_exec sed -i 's/Components: main$/Components: main contrib non-free-firmware/' /etc/apt/sources.list.d/debian.sources
-		chroot_exec apt-get -qq purge -y groff-base man-db manpages
+		chroot_exec apt-get -q purge -y groff-base man-db manpages
 	fi
 	cat >$CHROOT_DIR/etc/dpkg/dpkg.cfg.d/01_nodoc <<"EOF"
 path-exclude=/usr/share/locale/*;
@@ -131,16 +131,16 @@ EOF
 	popd
 
 	# prepare packages
-	chroot_exec apt-get -qq update
+	chroot_exec apt-get -q update
 
 	# packages common to all runtimes, to prevent from final purging
-	chroot_exec apt-get -qq install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs \
+	chroot_exec apt-get -q install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs \
 		htop inetutils-ping dnsutils net-tools netcat-openbsd telnet
 
 	# none
 	if [ "$RUNTIME" == "none" ]; then
 		(
-			chroot_exec apt-get -qq purge -y xz-utils
+			chroot_exec apt-get -q purge -y xz-utils
 		)
 	fi
 
@@ -151,7 +151,7 @@ EOF
 			chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
 			chroot_exec rm /tmp/get-docker.sh
 			chroot_exec apt-mark hold docker-ce docker-ce-cli containerd.io
-			chroot_exec apt-get -qq purge -y xz-utils
+			chroot_exec apt-get -q purge -y xz-utils
 		)
 	fi
 
@@ -162,7 +162,7 @@ EOF
 			tar Cxfz ${CHROOT_DIR}/usr/local "${BUILD_DIR}/${CONTAINERD_ARCHIVE}"
 			chroot_exec mkdir -p /opt/cni
 			chroot_exec mv /usr/local/libexec/cni /opt/cni/bin
-			chroot_exec apt-get -qq purge -y xz-utils
+			chroot_exec apt-get -q purge -y xz-utils
 		)
 	fi
 
@@ -172,22 +172,22 @@ EOF
 			apt_source_zabbly_incus
 
 			if [ "${DIST}" == "debian" ] ; then
-				chroot_exec apt-get -qq install -y dpkg-dev "linux-headers-cloud-${DPKG_ARCH}"
-				chroot_exec apt-get -qq install -y zfs-dkms
+				chroot_exec apt-get -q install -y dpkg-dev "linux-headers-cloud-${DPKG_ARCH}"
+				chroot_exec apt-get -q install -y zfs-dkms
 			fi
 
-			chroot_exec apt-get -qq install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools nftables
+			chroot_exec apt-get -q install -y incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools nftables
 			chroot_exec apt-mark hold incus incus-base incus-client incus-extra incus-ui-canonical zfsutils-linux btrfs-progs lvm2 thin-provisioning-tools nftables
 		)
 	fi
 
-	chroot_exec apt-get -qq purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl parted pciutils pollinate python3-gi snapd ssh-import-id
-	chroot_exec apt-get -qq purge -y unattended-upgrades systemd-resolved
-	chroot_exec apt-get -qq purge -y apt-listchanges apt-utils reportbug screen whiptail xml-core
-	chroot_exec apt-get -qq purge -y bash-completion
+	chroot_exec apt-get -q purge -y apport console-setup-linux dbus-user-session liblocale-gettext-perl parted pciutils pollinate python3-gi snapd ssh-import-id
+	chroot_exec apt-get -q purge -y unattended-upgrades systemd-resolved
+	chroot_exec apt-get -q purge -y apt-listchanges apt-utils reportbug screen whiptail xml-core
+	chroot_exec apt-get -q purge -y bash-completion
 
 	if [ "$DIST" == "ubuntu" ] ; then
-		chroot_exec apt-get -qq purge -y lxd-agent-loader lxd-installer ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core
+		chroot_exec apt-get -q purge -y lxd-agent-loader lxd-installer ubuntu-advantage-tools ubuntu-cloud-minimal ubuntu-drivers-common ubuntu-release-upgrader-core
 	fi
 
 	# cleanup any old kernel versions that may be been upgraded
@@ -195,10 +195,10 @@ EOF
 	LATEST_VERSION=$(echo "$KERNEL_VERSIONS" | tail -n 1)
 	for V in $KERNEL_VERSIONS; do
 		if [ "$V" != "$LATEST_VERSION" ]; then
-			chroot_exec apt-get -qq purge -y "linux-image-$V"
-			chroot_exec apt-get -qq purge -y "linux-headers-$V" ||:
-			chroot_exec apt-get -qq purge -y "linux-modules-$V" ||:
-			chroot_exec apt-get -qq purge -y "linux-modules-extra-$V" ||:
+			chroot_exec apt-get -q purge -y "linux-image-$V"
+			chroot_exec apt-get -q purge -y "linux-headers-$V" ||:
+			chroot_exec apt-get -q purge -y "linux-modules-$V" ||:
+			chroot_exec apt-get -q purge -y "linux-modules-extra-$V" ||:
 		fi
 	done
 
