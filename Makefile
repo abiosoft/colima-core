@@ -98,7 +98,7 @@ define download_and_verify
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl -o$$@.download -L $(2) && \
+	curl --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
 	$$(PRINT_STATS_CMD) $$@.download && \
 	tar -xzOf $$@.download >/dev/null || { \
 		echo >&2 "error downloading"; \
@@ -135,13 +135,13 @@ distclean: clean
 # base image
 $(IMAGE_FILE):
 	@echo "target: $@"
-	mkdir -p $(@D) && curl -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
+	mkdir -p $(@D) && curl --retry 5 --connect-timeout 10 -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
 
 $(IMAGE_SHA_FILE): $(IMAGE_FILE)
 	@echo "target: $@"
 	shasum -a $(IMAGE_SHA_SIZE) $< > $@.tmp
 	cd dist/img && ( \
-	    curl -sL $(IMAGE_BASE_URL)/SHA$(IMAGE_SHA_SIZE)SUMS | \
+	    curl --retry 5 --connect-timeout 10 -L $(IMAGE_BASE_URL)/SHA$(IMAGE_SHA_SIZE)SUMS | \
 	    grep $(notdir $<) | \
 	    shasum -a $(IMAGE_SHA_SIZE) --check --status \
 	  ) || { \
