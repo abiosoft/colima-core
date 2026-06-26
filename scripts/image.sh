@@ -214,11 +214,27 @@ EOF
 		mv binfmt qemu-* ${CHROOT_DIR}/usr/bin
 	)
 
+	# console messages to lima serial log
+	echo "virtio_console" >> $CHROOT_DIR/etc/initramfs-tools/modules
+	chroot_exec update-initramfs -k all -u
+	mkdir -p $CHROOT_DIR/etc/default/grub.d
+	cat >"$CHROOT_DIR"/etc/default/grub.d/99-lima-console.cfg <<"EOF"
+GRUB_TERMINAL="serial console"
+GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=ttyS0 console=hvc0"
+EOF
+	chroot_exec update-grub
+
 	# enable vsock modules at boot
 	cat >${CHROOT_DIR}/etc/modules-load.d/vsock.conf <<EOF
 vsock
 virtio_vsock
 EOF
+
+	# logging to console
+	sed -i -e 's/#\(Storage\)=.*/\1=volatile/' \
+	    -e 's/#\(RuntimeMaxUse\)=.*/100M/' \
+	    -e 's/#\(ForwardToConsole\)=.*/\1=yes/' $CHROOT_DIR/etc/systemd/journald.conf
 
 	# clean traces
 	chroot_exec find /tmp -mindepth 1 -delete
