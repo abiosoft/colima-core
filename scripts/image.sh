@@ -2,9 +2,6 @@
 
 set -eux
 
-# disable apt prompts
-export DEBIAN_FRONTEND=noninteractive
-
 # external variables that must be set
 echo vars: $DOCKER_VERSION $RUNTIME
 
@@ -18,51 +15,79 @@ convert_file() (
 	qemu-img convert -p -f qcow2 -O raw "${IMAGE_FILE}" "${RAW_FILE}"
 )
 
-mount_partition() {
-	LOOP_DEV=$(losetup -Pf --show "${RAW_FILE}")
-	kpartx -avs "$LOOP_DEV"
-	LOOP_NAME=$(basename "$LOOP_DEV")
-	ROOT_PART="/dev/mapper/${LOOP_NAME}p1"
-	ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
-	mkdir -p "/dev/disk/by-uuid"
-	ln -s "/dev/mapper/${LOOP_NAME}p1" "/dev/disk/by-uuid/$ROOT_UUID"
-	mkdir -p $CHROOT_DIR
+mount_partitions() {
+	mkdir -p "$CHROOT_DIR"
 
-	mount "$ROOT_PART" "$CHROOT_DIR"
+	LOOP_DEV=$(losetup -Pf --show "${RAW_FILE}")
+	LOOP_NAME="${LOOP_DEV##*/}"
+	FOUND_ROOT="0:0"
+
+	# generate partition device nodes
+	for part_sys_path in "/sys/class/block/${LOOP_NAME}/${LOOP_NAME}p"*; do
+		PART_PART_ENTRY_UUID=""
+		if [ -e "$part_sys_path" ]; then
+			PART_NAME="${part_sys_path##*/}"
+			read -r PART_MAJ_MIN < "$part_sys_path/dev"
+			if [ ! -e "/dev/$PART_NAME" ]; then
+				mknod "/dev/$PART_NAME" b "${PART_MAJ_MIN%:*}" "${PART_MAJ_MIN#*:}"
+			fi
+			# create part uuid dev entries so mounting is easy later
+			eval "$(blkid -p -o export /dev/"${PART_NAME}" | sed 's/^/PART_/')"
+			# Ubuntu uses labels, make fstab consistent with Debian, which uses partuuid
+			if [[ -n "${PART_PART_ENTRY_UUID:-}" ]] ; then
+				mkdir -p /dev/disk/by-partuuid
+				ln -s ../../"${PART_NAME}" /dev/disk/by-partuuid/"${PART_PART_ENTRY_UUID}"
+				# stage fstab updates so Ubuntu fstab (labels) is like Debian (partuuids)
+				if [[ -n "${PART_LABEL:-}" ]] ; then
+					echo "sed -i 's/LABEL=${PART_LABEL}/PARTUUID=${PART_PART_ENTRY_UUID}/' ${CHROOT_DIR}/etc/fstab" >> /tmp/fstab_update
+				fi
+			fi
+			# guess which is the root dev (usually it's 1), but the largest ext4 partition makes more sense
+			if [[ "${PART_TYPE}" == "ext4" ]] && [[ "${FOUND_ROOT##*:}" -lt "${PART_FSSIZE}" ]] ; then
+				FOUND_ROOT="/dev/${PART_NAME}:${PART_FSSIZE}"
+			fi
+		fi
+	done
+
+	# mount root so we can mount everything else
+	mount "${FOUND_ROOT%%:*}" "${CHROOT_DIR}"
+
+	# update fstab with partuuids
+	if [ -f /tmp/fstab_update ]; then
+		source /tmp/fstab_update
+	fi
+
 	mount --bind /proc "$CHROOT_DIR/proc"
 	mount --bind /dev "$CHROOT_DIR/dev"
 	mount --bind /sys "$CHROOT_DIR/sys"
+
 	chroot_exec mount -t devpts devpts /dev/pts
+	chroot_exec mount -a
 }
 
 cleanup() {
 	rm -f "${RAW_FILE}"
 	if [ -n "$CHROOT_DIR" ] && mountpoint -q "$CHROOT_DIR"; then
-		unmount_partition ||:
+		unmount_partitions ||:
 	fi
-	if [ -n "$ROOT_UUID" ] && [ -h "/dev/disk/by-uuid/$ROOT_UUID" ]; then
-		rm -f "/dev/disk/by-uuid/$ROOT_UUID"
-	fi
-	if [ -n "$LOOP_DEV" ]; then
-		kpartx -dvs "$LOOP_DEV" 2>/dev/null || true
-	fi
+	rm -rf /dev/disk
 	if [ -n "$LOOP_DEV" ] && losetup "$LOOP_DEV" >/dev/null 2>&1; then
 		losetup -d "$LOOP_DEV"
 	fi
 }
 trap 'cleanup' EXIT
 
-unmount_partition() (
+unmount_partitions() (
+	chroot_exec umount -a -t nocgroup,nodevtmpfs,noproc,nosysfs
 	umount $CHROOT_DIR/sys
-	umount $CHROOT_DIR/dev/pts
-	umount $CHROOT_DIR/dev
 	umount $CHROOT_DIR/proc
 	umount $CHROOT_DIR
 )
 
 chroot_exec() (
-	chroot $CHROOT_DIR "$@"
+	chroot $CHROOT_DIR env DEBIAN_FRONTEND=noninteractive "$@"
 )
+
 
 apt_update_source() {
 	chroot_exec apt-get -q update -y -o Dir::Etc::sourcelist="sources.list.d/${1}" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
@@ -115,7 +140,7 @@ install_packages() (
 
 	# minimal
 	echo 'Binary::apt::APT::Keep-Downloaded-Packages "0";' > $CHROOT_DIR/etc/apt/apt.conf.d/01_nocache
-	echo 'APT::Install-Recommends "0"; APT::Install-Suggests "0"; Acquire::Retries "5";' >> $CHROOT_DIR/etc/apt/apt.conf.d/colima
+	echo 'APT::Install-Recommends "0"; APT::Install-Suggests "0"; Acquire::Retries "5"; Acquire::Retries::Delay::Maximum "30";' >> $CHROOT_DIR/etc/apt/apt.conf.d/colima
 	if [ "${DIST}" == "debian" ] ; then
 		chroot_exec sed -i 's/Components: main$/Components: main contrib non-free-firmware/' /etc/apt/sources.list.d/debian.sources
 		chroot_exec apt-get -q purge -y groff-base man-db manpages
@@ -134,7 +159,8 @@ EOF
 	chroot_exec apt-get -q update
 
 	# packages common to all runtimes, to prevent from final purging
-	chroot_exec apt-get -q install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs \
+	chroot_exec apt-get -q install -y \
+		iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq rsync xfsprogs \
 		htop inetutils-ping dnsutils net-tools netcat-openbsd telnet
 
 	# none
@@ -215,14 +241,18 @@ EOF
 	)
 
 	# console messages to lima serial log
-	echo "virtio_console" >> $CHROOT_DIR/etc/initramfs-tools/modules
-	chroot_exec update-initramfs -k all -u
+	# https://github.com/lima-vm/lima/issues/1659
 	mkdir -p $CHROOT_DIR/etc/default/grub.d
+	if [[ "$DIST" == "ubuntu" ]]; then
 	cat >"$CHROOT_DIR"/etc/default/grub.d/99-lima-console.cfg <<"EOF"
-GRUB_TERMINAL="serial console"
-GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"
-GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=ttyS0 console=hvc0"
+GRUB_CMDLINE_LINUX_DEFAULT="console=hvc0 earlycon"
 EOF
+	elif [[ "$DIST" == "debian" ]]; then
+	cat >"$CHROOT_DIR"/etc/default/grub.d/99-lima-console.cfg <<"EOF"
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=hvc0 earlycon"
+EOF
+	fi
+
 	chroot_exec update-grub
 
 	# enable vsock modules at boot
@@ -233,7 +263,7 @@ EOF
 
 	# logging to console
 	sed -i -e 's/#\(Storage\)=.*/\1=volatile/' \
-	    -e 's/#\(RuntimeMaxUse\)=.*/100M/' \
+	    -e 's/#\(RuntimeMaxUse\)=.*/\1=100M/' \
 	    -e 's/#\(ForwardToConsole\)=.*/\1=yes/' $CHROOT_DIR/etc/systemd/journald.conf
 
 	# clean traces
@@ -254,7 +284,7 @@ compress_file() (
 
 # perform all actions
 convert_file
-mount_partition
+mount_partitions
 install_packages
-unmount_partition
+unmount_partitions
 compress_file

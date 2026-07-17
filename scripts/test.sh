@@ -15,9 +15,10 @@ RUNTIME=${BN_IMAGE_T##*-}
 
 echo "DIST=$DIST RUNTIME=$RUNTIME IMAGE=$BN_IMAGE TYPE=$IMAGE_TYPE "
 
-export COLIMA_PROFILE="$RUNTIME.$$"
+export COLIMA_PROFILE="test"
 
 cleanup() {
+   read -r -t 10 -n 1 -p "Press any key to keep test instance running (deleting in 10s)..." && exit
    echo "==== Delete runtime"
    colima delete -d -v -f ||:
 }
