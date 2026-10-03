@@ -55,7 +55,7 @@ install_packages() (
 	chroot_exec apt-get update
 
 	# packages common to all runtimes, to prevent from final purging
-	chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq
+	chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs
 
 	# none
 	if [ "$RUNTIME" == "none" ]; then
