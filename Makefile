@@ -116,8 +116,8 @@ define download_colima
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl -sf --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L $(2).sha256sum && \
-	curl -sf --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
+	curl --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L $(2).sha256sum && \
+	curl --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
 	$$(PRINT_STATS_CMD) $$@.download && \
 	cat $$@.download.sha256sum | \
 	    awk '{ print $$$$1 " *$$@.download" }' | \
