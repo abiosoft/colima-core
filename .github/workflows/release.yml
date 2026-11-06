@@ -74,6 +74,7 @@ jobs:
 
       - name: Build
         run: |
+          chmod +x dist/colima/colima-*
           docker load -i builder-${{ matrix.arch }}.tar
           make DIST=${{ matrix.dist }} --touch deps save-builder
           make DIST=${{ matrix.dist }} none docker containerd incus
