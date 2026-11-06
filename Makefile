@@ -55,6 +55,11 @@ BINFMT_ARCH = aarch64
 ifeq ($(strip $(OS_ARCH)),aarch64)
 BINFMT_ARCH = x86_64
 endif
+# colima is a inconsistent
+COLIMA_ARCH = arm64
+ifeq ($(strip $(OS_ARCH)),aarch64)
+COLIMA_ARCH = x86_64
+endif
 
 export ARCH
 export BINFMT_ARCH
@@ -76,7 +81,7 @@ BINFMT_QEMU_URL ?= $(BINFMT_DOWNLOAD_URL)/$(notdir $(BINFMT_QEMU_FILE))
 
 # colima (for testing)
 COLIMA_RELEASE ?= latest
-COLIMA_RELEASE_BIN ?= dist/colima/colima-$(UNAME_S)-$(ARCH)
+COLIMA_RELEASE_BIN ?= dist/colima/colima-$(UNAME_S)-$(COLIMA_ARCH)
 COLIMA_RELEASE_URL ?= https://github.com/abiosoft/colima/releases/$(COLIMA_RELEASE)/download/$(notdir $(COLIMA_RELEASE_BIN))
 
 # ubuntu
@@ -116,8 +121,8 @@ define download_colima
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl -v -f --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L '$(2).sha256sum' && \
-	curl -v -f --retry 3 --connect-timeout 10 -o$$@.download -L '$(2)' && \
+	curl -f --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L '$(2).sha256sum' && \
+	curl -f --retry 3 --connect-timeout 10 -o$$@.download -L '$(2)' && \
 	cat $$@.download.sha256sum | \
 	    awk '{ print $$$$1 " *$$@.download" }' | \
 	    shasum -a 256 --check --status && \
