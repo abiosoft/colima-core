@@ -75,6 +75,7 @@ jobs:
       - name: Build
         run: |
           docker load -i builder-${{ matrix.arch }}.tar
+          make DIST=${{ matrix.dist }} --touch deps save-builder
           make DIST=${{ matrix.dist }} none docker containerd incus
           ls -lah dist/img
 

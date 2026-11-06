@@ -123,9 +123,6 @@ $(1):
 	$$@.download --version && \
 	mv -f $$@.download.sha256sum $$@.sha256sum && \
 	mv -f $$@.download $$@
-
-dist/colima/colima: $(1)
-	$$(PRINT_STATS_CMD) $$< && ln -sf $$(notdir $$<) $$@
 endef
 
 # image builder container image
@@ -134,7 +131,7 @@ DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
 DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(BUILD_ARCH)
 
 IMAGE_DEPENDENCIES = $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum $(DOCKER_BUILD_IMAGE) 
-TEST_DEPENDENCIES = dist/colima/colima
+TEST_DEPENDENCIES = $(COLIMA_RELEASE_BIN)
 
 #
 # targets
@@ -246,6 +243,6 @@ $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
 $(eval $(call download_colima,$(COLIMA_RELEASE_BIN),$(COLIMA_RELEASE_URL)))
 
 $(TEST_TARGETS): test-%: $(basename $(IMAGE_FILE))-%.raw.gz $(TEST_DEPENDENCIES)
-	@./scripts/test.sh $< $(QEMU_BIN_ARCH) dist/colima/colima
+	@./scripts/test.sh $< $(QEMU_BIN_ARCH) $(COLIMA_RELEASE_BIN)
 
 test: $(TEST_TARGETS)
