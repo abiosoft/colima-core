@@ -40,58 +40,51 @@ RUNTIME ?= docker
 
 # architecture defaults to the current system's.
 OS_ARCH ?= $(shell uname -m)
-ifeq ($(strip $(OS_ARCH)),arm64)
-OS_ARCH = aarch64
-endif
 
 # OS_ARCH is derived from `uname -m` but the alternate architecture name (e.g. amd64, arm64)
 # is required for Docker and asset downloads.
-ARCH_x86_64 = amd64
-ARCH_aarch64 = arm64
-ARCH = $(ARCH_$(OS_ARCH))
+BUILD_ARCH_aarch64 = arm64
+BUILD_ARCH_amd64 = amd64
+BUILD_ARCH_arm64 = arm64
+BUILD_ARCH_x86_64 = amd64
+BUILD_ARCH ?= $(BUILD_ARCH_$(OS_ARCH))
 
-# binfmt needs the opposite of OS_ARCH
-BINFMT_ARCH = aarch64
-ifeq ($(strip $(OS_ARCH)),aarch64)
-BINFMT_ARCH = x86_64
-endif
-# colima is a inconsistent
-COLIMA_ARCH = arm64
-ifeq ($(strip $(OS_ARCH)),aarch64)
-COLIMA_ARCH = x86_64
-endif
-
-export ARCH
-export BINFMT_ARCH
+# qemu binfmt emulation
+QEMU_BIN_ARCH_aarch64 = x86_64
+QEMU_BIN_ARCH_arm64 = x86_64
+QEMU_BIN_ARCH_x86_64 = aarch64
+QEMU_BIN_ARCH_amd64 = aarch64
+QEMU_BIN_ARCH = $(QEMU_BIN_ARCH_$(OS_ARCH))
+QEMU_ARCH = $(BUILD_ARCH_$(OS_ARCH))
 
 # containerd
-CONTAINERD_ARCHIVE ?= dist/containerd/containerd-utils-$(ARCH).tar.gz
-NERDCTL_FILE ?= dist/containerd/nerdctl-full-$(NERDCTL_VERSION)-linux-$(ARCH).tar.gz
+CONTAINERD_ARCHIVE ?= dist/containerd/containerd-utils-$(BUILD_ARCH).tar.gz
+NERDCTL_FILE ?= dist/containerd/nerdctl-full-$(NERDCTL_VERSION)-linux-$(BUILD_ARCH).tar.gz
 NERDCTL_URL ?= https://github.com/containerd/nerdctl/releases/download/v$(NERDCTL_VERSION)/$(notdir $(NERDCTL_FILE))
-FLANNEL_FILE ?= dist/containerd/cni-plugin-flannel-linux-$(ARCH)-v$(FLANNEL_MINI_VERSION).tgz
+FLANNEL_FILE ?= dist/containerd/cni-plugin-flannel-linux-$(BUILD_ARCH)-v$(FLANNEL_MINI_VERSION).tgz
 FLANNEL_URL ?= https://github.com/flannel-io/cni-plugin/releases/download/v$(FLANNEL_VERSION)/$(notdir $(FLANNEL_FILE))
 
 # binfmt
-BINFMT_ARCHIVE = dist/binfmt/binfmt-$(ARCH).tar.gz
+BINFMT_ARCHIVE = dist/binfmt/binfmt-$(BUILD_ARCH).tar.gz
 BINFMT_DOWNLOAD_URL ?= https://github.com/tonistiigi/binfmt/releases/download/$(BINFMT_VERSION)
-BINFMT_FILE ?= dist/binfmt/$(BINFMT_VERSION)/binfmt_linux-$(ARCH).tar.gz
+BINFMT_FILE ?= dist/binfmt/$(BINFMT_VERSION)/binfmt_linux-$(BUILD_ARCH).tar.gz
 BINFMT_URL ?= $(BINFMT_DOWNLOAD_URL)/$(notdir $(BINFMT_FILE))
-BINFMT_QEMU_FILE ?= dist/binfmt/$(BINFMT_QEMU_VERSION)/qemu_v$(BINFMT_QEMU_VERSION)_linux-$(ARCH).tar.gz
+BINFMT_QEMU_FILE ?= dist/binfmt/$(BINFMT_QEMU_VERSION)/qemu_v$(BINFMT_QEMU_VERSION)_linux-$(QEMU_ARCH).tar.gz
 BINFMT_QEMU_URL ?= $(BINFMT_DOWNLOAD_URL)/$(notdir $(BINFMT_QEMU_FILE))
 
 # colima (for testing)
 COLIMA_RELEASE ?= latest
-COLIMA_RELEASE_BIN ?= dist/colima/colima-$(UNAME_S)-$(COLIMA_ARCH)
+COLIMA_RELEASE_BIN ?= dist/colima/colima-$(UNAME_S)-$(OS_ARCH)
 COLIMA_RELEASE_URL ?= https://github.com/abiosoft/colima/releases/$(COLIMA_RELEASE)/download/$(notdir $(COLIMA_RELEASE_BIN))
 
 # ubuntu
 UBUNTU_IMAGE_BASE_URL ?= https://cloud-images.ubuntu.com/minimal/releases/$(UBUNTU_CODENAME)/release-$(UBUNTU_BUILD)
-UBUNTU_IMAGE_FILE ?= dist/img/ubuntu-$(UBUNTU_VERSION)-minimal-cloudimg-$(ARCH).img
+UBUNTU_IMAGE_FILE ?= dist/img/ubuntu-$(UBUNTU_VERSION)-minimal-cloudimg-$(BUILD_ARCH).img
 UBUNTU_IMAGE_SHA_FILE ?= $(UBUNTU_IMAGE_FILE).sha256sum
 
 # debian
 DEBIAN_IMAGE_BASE_URL ?= https://cloud.debian.org/images/cloud/$(DEBIAN_CODENAME)/$(DEBIAN_BUILD)
-DEBIAN_IMAGE_FILE ?= dist/img/debian-$(DEBIAN_VERSION)-genericcloud-$(ARCH)-$(DEBIAN_BUILD).qcow2
+DEBIAN_IMAGE_FILE ?= dist/img/debian-$(DEBIAN_VERSION)-genericcloud-$(BUILD_ARCH)-$(DEBIAN_BUILD).qcow2
 DEBIAN_IMAGE_SHA_FILE ?= $(DEBIAN_IMAGE_FILE).sha512sum
 
 # DIST resolved variables
@@ -136,9 +129,9 @@ dist/colima/colima: $(1)
 endef
 
 # image builder container image
-DOCKER_BUILD_IMAGE = scripts/.build-image-stamp-$(ARCH)
+DOCKER_BUILD_IMAGE = scripts/.build-image-stamp-$(BUILD_ARCH)
 DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
-DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(ARCH)
+DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(BUILD_ARCH)
 
 IMAGE_DEPENDENCIES = $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum $(DOCKER_BUILD_IMAGE) 
 TEST_DEPENDENCIES = dist/colima/colima
@@ -198,7 +191,7 @@ $(BINFMT_ARCHIVE): $(BINFMT_FILE) $(BINFMT_QEMU_FILE)
 	TMP_DIR=$$(mktemp -d); \
 	  trap 'rm -rf "$$TMP_DIR"' EXIT; \
 	  for f in $^; do tar $(TARV)zxf "$$f" -C "$$TMP_DIR"; done; \
-	  cd "$$TMP_DIR" && tar $(TARV)czf '$(CURDIR)/$@' binfmt qemu-i386 qemu-$(BINFMT_ARCH) || { \
+	  cd "$$TMP_DIR" && tar $(TARV)czf '$(CURDIR)/$@' binfmt qemu-i386 qemu-$(QEMU_BIN_ARCH) || { \
 	    echo >&2 "failed to create $@" ; \
 	    rm -f '$(CURDIR)/$@'; exit 1; \
 	  }
@@ -222,19 +215,19 @@ $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
 # builder
-save-builder: builder-$(OS_ARCH).tar
+save-builder: builder-$(BUILD_ARCH).tar
 
 builder-%.tar: $(DOCKER_BUILD_IMAGE)
-	docker save $(DOCKER_BUILD_IMAGE_TAG) -o builder-$(OS_ARCH).tar
+	docker save $(DOCKER_BUILD_IMAGE_TAG) -o builder-$(BUILD_ARCH).tar
 
 $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) dependencies.env
-	docker build --platform linux/$(ARCH) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
+	docker build --platform linux/$(BUILD_ARCH) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
 
 # images
 $(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) dependencies.env
-	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run $(DOCKER_RUN_ARGS) --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
+	if [ $(BUILD_ARCH) != $(QEMU_ARCH) ] ; then docker run $(DOCKER_RUN_ARGS) --privileged --rm tonistiigi/binfmt --install $(QEMU_BIN_ARCH); fi
 	docker run $(DOCKER_RUN_ARGS) --rm --privileged \
-	  --platform linux/$(ARCH) \
+	  --platform linux/$(BUILD_ARCH) \
 	  --volume $(CURDIR):/build \
 	  --env DIST=$(DIST) \
 	  --env BINFMT_ARCHIVE=$(BINFMT_ARCHIVE) \
@@ -253,6 +246,6 @@ $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
 $(eval $(call download_colima,$(COLIMA_RELEASE_BIN),$(COLIMA_RELEASE_URL)))
 
 $(TEST_TARGETS): test-%: $(basename $(IMAGE_FILE))-%.raw.gz $(TEST_DEPENDENCIES)
-	@./scripts/test.sh $< dist/colima/colima
+	@./scripts/test.sh $< $(QEMU_BIN_ARCH) dist/colima/colima
 
 test: $(TEST_TARGETS)

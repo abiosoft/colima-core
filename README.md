@@ -10,10 +10,10 @@ Generate a raw disk image compressed with gzip (`.raw.gz`) for the OS architectu
 make
 ```
 
-Generate a `.raw.gz` image for another architecture. `OS_ARCH` must be one of `aarch64`, `x86_64`
+Generate a `.raw.gz` image for another architecture. `BUILD_ARCH` must be one of `arm64`, `amd64`
 
 ```sh
-OS_ARCH=x86_64 make
+BUILD_ARCH=amd64 make
 ```
 
 Generate a `.raw.gz` image for another runtime.

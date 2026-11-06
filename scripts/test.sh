@@ -13,9 +13,17 @@ IMAGE_TYPE=${BN_IMAGE_T##*.}
 BN_IMAGE_T=$(basename -s ".$IMAGE_TYPE" "$BN_IMAGE_T")
 RUNTIME=${BN_IMAGE_T##*-}
 
+COLIMA_START_ARGS=()
+if [ -n "${2:-}" ]; then
+    COLIMA_START_ARGS+=("-a" "$2")
+    shift
+fi
+COLIMA_START_ARGS+=("-r" "$RUNTIME" "--disk-image" "$IMAGE_FILE" "--force-disk-image")
+
 COLIMA_BIN=colima
 if [ -n "${2:-}" ]; then
     COLIMA_BIN="$2"
+    shift
 fi
 if ! "${COLIMA_BIN}" version >/dev/null; then
     echo >&2 "ERROR: working colima command required"
@@ -41,10 +49,7 @@ trap 'cleanup' EXIT
 
 echo "==== Starting runtime"
 # gnu timeout (coreutils) is not available everywhere, this perl does the same thing
-perl -e 'alarm 60; exec @ARGV' "${COLIMA_BIN}" start \
-    -r "$RUNTIME" \
-    --disk-image "$IMAGE_FILE" \
-    --force-disk-image
+perl -e 'alarm 60; exec @ARGV' "${COLIMA_BIN}" start "${COLIMA_START_ARGS[@]}"
 
 # check for failed services
 echo "==== Test: systemd"
