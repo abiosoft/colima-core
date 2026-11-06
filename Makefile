@@ -116,8 +116,8 @@ define download_colima
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl -f --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L '$(2).sha256sum' && \
-	curl -f --retry 3 --connect-timeout 10 -o$$@.download -L '$(2)' && \
+	curl -v -f --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L '$(2).sha256sum' && \
+	curl -v -f --retry 3 --connect-timeout 10 -o$$@.download -L '$(2)' && \
 	cat $$@.download.sha256sum | \
 	    awk '{ print $$$$1 " *$$@.download" }' | \
 	    shasum -a 256 --check --status && \
@@ -127,7 +127,7 @@ $(1):
 	mv -f $$@.download $$@
 
 dist/colima/colima: $(1)
-	$$(PRINT_STATS_CMD) $$@ && ln -sf $$(notdir $$<) $$@
+	$$(PRINT_STATS_CMD) $$< && ln -sf $$(notdir $$<) $$@
 endef
 
 # image builder container image
