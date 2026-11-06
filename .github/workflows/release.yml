@@ -19,11 +19,11 @@ jobs:
       max-parallel: 2
       fail-fast: true
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [amd64, arm64]
         include:
-          - arch: x86_64
+          - arch: amd64
             os: ubuntu-latest
-          - arch: aarch64
+          - arch: arm64
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     name: builder-${{ matrix.arch }}
@@ -51,12 +51,12 @@ jobs:
       max-parallel: 4
       fail-fast: true
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [amd64, arm64]
         dist: [ubuntu, debian]
         include:
-          - arch: x86_64
+          - arch: amd64
             os: ubuntu-latest
-          - arch: aarch64
+          - arch: arm64
             os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     needs: [builder]
