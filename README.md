@@ -36,3 +36,15 @@ Generate images based on Debian.
 ```sh
 DIST=debian make
 ```
+
+Test images
+
+```sh
+# test all images
+make test
+
+# test variants
+make test-docker
+make test-containerd
+make test-incus
+```

@@ -74,6 +74,11 @@ BINFMT_URL ?= $(BINFMT_DOWNLOAD_URL)/$(notdir $(BINFMT_FILE))
 BINFMT_QEMU_FILE ?= dist/binfmt/$(BINFMT_QEMU_VERSION)/qemu_v$(BINFMT_QEMU_VERSION)_linux-$(ARCH).tar.gz
 BINFMT_QEMU_URL ?= $(BINFMT_DOWNLOAD_URL)/$(notdir $(BINFMT_QEMU_FILE))
 
+# colima (for testing)
+COLIMA_RELEASE ?= latest
+COLIMA_RELEASE_BIN ?= dist/colima/colima-$(UNAME_S)-$(ARCH)
+COLIMA_RELEASE_URL ?= https://github.com/abiosoft/colima/releases/$(COLIMA_RELEASE)/download/$(notdir $(COLIMA_RELEASE_BIN))
+
 # ubuntu
 UBUNTU_IMAGE_BASE_URL ?= https://cloud-images.ubuntu.com/minimal/releases/$(UBUNTU_CODENAME)/release-$(UBUNTU_BUILD)
 UBUNTU_IMAGE_FILE ?= dist/img/ubuntu-$(UBUNTU_VERSION)-minimal-cloudimg-$(ARCH).img
@@ -107,17 +112,39 @@ $(1):
 	mv -f $$@.download $$@
 endef
 
+define download_colima
+$(1):
+	@echo "downloading $(2)"
+	mkdir -p $$(@D) && \
+	curl -sf --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L $(2).sha256sum && \
+	curl -sf --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
+	$$(PRINT_STATS_CMD) $$@.download && \
+	cat $$@.download.sha256sum | \
+	    awk '{ print $$$$1 " *$$@.download" }' | \
+	    shasum -a 256 --check --status && \
+	chmod +x $$@.download && \
+	$$@.download --version && \
+	mv -f $$@.download.sha256sum $$@.sha256sum && \
+	mv -f $$@.download $$@
+
+dist/colima/colima: $(1)
+	ln -sf $$(notdir $$<) $$@
+endef
+
 # image builder container image
 DOCKER_BUILD_IMAGE = scripts/.build-image-stamp-$(ARCH)
 DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
 DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(ARCH)
 
 IMAGE_DEPENDENCIES = $(DOCKER_BUILD_IMAGE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
+TEST_DEPENDENCIES = dist/colima/colima
+
 #
 # targets
 #
+TEST_TARGETS = $(addprefix test-,$(RUNTIMES))
 
-.PHONY: clean distclean save-builder image $(RUNTIMES)
+.PHONY: clean colima deps distclean save-builder image test $(RUNTIMES) $(TEST_TARGETS)
 
 # deprecated (default) target
 image: $(RUNTIME)
@@ -127,6 +154,9 @@ all: $(RUNTIMES)
 # rm build targets
 clean:
 	rm -rf $(IMAGE_DEPENDENCIES) dist/img/*.raw.gz*
+
+# populate dist directory
+deps: $(IMAGE_DEPENDENCIES) $(TEST_DEPENDENCIES)
 
 # rm + cache
 distclean: clean
@@ -191,11 +221,11 @@ $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 save-builder: $(DOCKER_BUILD_IMAGE)
 	docker save $(DOCKER_BUILD_IMAGE_TAG) -o builder-$(OS_ARCH).tar
 
-$(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) Makefile
+$(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) dependencies.env
 	docker build --platform linux/$(ARCH) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(DOCKER_BUILD_IMAGE_TAG) --iidfile $@ $(dir $@)
 
 # images
-$(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) Makefile
+$(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DOCKER_BUILD_IMAGE) dependencies.env
 	if [ $(OS_ARCH) != $(ARCH) ] ; then docker run $(DOCKER_RUN_ARGS) --privileged --rm tonistiigi/binfmt --install $(BINFMT_ARCH); fi
 	docker run $(DOCKER_RUN_ARGS) --rm --privileged \
 	  --platform linux/$(ARCH) \
@@ -213,3 +243,10 @@ $(basename $(IMAGE_FILE))-%.raw.gz: $(IMAGE_SHA_FILE) $(IMAGE_DEPENDENCIES) $(DO
 
 $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
 	$(PRINT_STATS_CMD) $<
+
+$(eval $(call download_colima,$(COLIMA_RELEASE_BIN),$(COLIMA_RELEASE_URL)))
+
+$(TEST_TARGETS): test-%: $(basename $(IMAGE_FILE))-%.raw.gz $(TEST_DEPENDENCIES)
+	@./scripts/test.sh $< dist/colima/colima
+
+test: $(TEST_TARGETS)

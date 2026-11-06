@@ -278,7 +278,7 @@ EOF
 )
 
 compress_file() (
-	pigz -9 -n -f "${RAW_FILE}"
+	pigz -n -f "${RAW_FILE}"
 	shasum -a 512 "${RAW_FILE}.gz" >"${RAW_FILE}.gz.sha512sum"
 )
 
