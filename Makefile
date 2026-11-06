@@ -103,7 +103,7 @@ define download_and_verify
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
+	curl -f --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
 	$$(PRINT_STATS_CMD) $$@.download && \
 	tar -xzOf $$@.download >/dev/null || { \
 		echo >&2 "error downloading"; \
@@ -116,8 +116,8 @@ define download_colima
 $(1):
 	@echo "downloading $(2)"
 	mkdir -p $$(@D) && \
-	curl --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L $(2).sha256sum && \
-	curl --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
+	curl -f --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L '$(2).sha256sum' && \
+	curl -f --retry 3 --connect-timeout 10 -o$$@.download -L '$(2)' && \
 	cat $$@.download.sha256sum | \
 	    awk '{ print $$$$1 " *$$@.download" }' | \
 	    shasum -a 256 --check --status && \
@@ -164,13 +164,13 @@ distclean: clean
 # base image
 $(IMAGE_FILE):
 	@echo "target: $@"
-	mkdir -p $(@D) && curl --retry 5 --connect-timeout 10 -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
+	mkdir -p $(@D) && curl -f --retry 5 --connect-timeout 10 -o"$@" -L $(IMAGE_BASE_URL)/$(notdir $@)
 
 $(IMAGE_SHA_FILE): $(IMAGE_FILE)
 	@echo "target: $@"
 	shasum -a $(IMAGE_SHA_SIZE) $< > $@.tmp
 	cd dist/img && ( \
-	    curl --retry 5 --connect-timeout 10 -L $(IMAGE_BASE_URL)/SHA$(IMAGE_SHA_SIZE)SUMS | \
+	    curl -f --retry 5 --connect-timeout 10 -L $(IMAGE_BASE_URL)/SHA$(IMAGE_SHA_SIZE)SUMS | \
 	    grep $(notdir $<) | \
 	    shasum -a $(IMAGE_SHA_SIZE) --check --status \
 	  ) || { \
