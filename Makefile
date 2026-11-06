@@ -218,7 +218,9 @@ $(eval $(call download_and_verify,$(NERDCTL_FILE),$(NERDCTL_URL)))
 $(eval $(call download_and_verify,$(FLANNEL_FILE),$(FLANNEL_URL)))
 
 # builder
-save-builder: $(DOCKER_BUILD_IMAGE)
+save-builder: builder-$(OS_ARCH).tar
+
+builder-%.tar: $(DOCKER_BUILD_IMAGE)
 	docker save $(DOCKER_BUILD_IMAGE_TAG) -o builder-$(OS_ARCH).tar
 
 $(DOCKER_BUILD_IMAGE): $(DOCKER_BUILD_IMAGE_SOURCES) dependencies.env

@@ -35,13 +35,15 @@ jobs:
           persist-credentials: false
 
       - name: Build
-        run: make save-builder
+        run: make save-builder deps
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: builder-${{ matrix.arch }}
-          path: builder-${{ matrix.arch }}.tar
+          path: |
+            builder-${{ matrix.arch }}.tar
+            dist/
           overwrite: true
 
   image:
