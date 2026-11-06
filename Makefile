@@ -118,7 +118,6 @@ $(1):
 	mkdir -p $$(@D) && \
 	curl --retry 3 --connect-timeout 10 -o$$@.download.sha256sum -L $(2).sha256sum && \
 	curl --retry 3 --connect-timeout 10 -o$$@.download -L $(2) && \
-	$$(PRINT_STATS_CMD) $$@.download && \
 	cat $$@.download.sha256sum | \
 	    awk '{ print $$$$1 " *$$@.download" }' | \
 	    shasum -a 256 --check --status && \
@@ -128,7 +127,7 @@ $(1):
 	mv -f $$@.download $$@
 
 dist/colima/colima: $(1)
-	ln -sf $$(notdir $$<) $$@
+	$$(PRINT_STATS_CMD) $$@ && ln -sf $$(notdir $$<) $$@
 endef
 
 # image builder container image
@@ -136,7 +135,7 @@ DOCKER_BUILD_IMAGE = scripts/.build-image-stamp-$(ARCH)
 DOCKER_BUILD_IMAGE_SOURCES = scripts/Dockerfile scripts/image.sh
 DOCKER_BUILD_IMAGE_TAG = colima-core-builder:$(ARCH)
 
-IMAGE_DEPENDENCIES = $(DOCKER_BUILD_IMAGE) $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum
+IMAGE_DEPENDENCIES = $(CONTAINERD_ARCHIVE).sha512sum $(BINFMT_ARCHIVE).sha512sum $(DOCKER_BUILD_IMAGE) 
 TEST_DEPENDENCIES = dist/colima/colima
 
 #
@@ -156,7 +155,7 @@ clean:
 	rm -rf $(IMAGE_DEPENDENCIES) dist/img/*.raw.gz*
 
 # populate dist directory
-deps: $(IMAGE_DEPENDENCIES) $(TEST_DEPENDENCIES)
+deps: $(TEST_DEPENDENCIES) $(IMAGE_DEPENDENCIES)
 
 # rm + cache
 distclean: clean
