@@ -57,6 +57,11 @@ QEMU_BIN_ARCH_amd64 = aarch64
 QEMU_BIN_ARCH = $(QEMU_BIN_ARCH_$(OS_ARCH))
 QEMU_ARCH = $(BUILD_ARCH_$(OS_ARCH))
 
+# colima image arch (for testing)
+COLIMA_IMAGE_ARCH_amd64 = x86_64
+COLIMA_IMAGE_ARCH_arm64 = aarch64
+COLIMA_IMAGE_ARCH = $(COLIMA_IMAGE_ARCH_$(BUILD_ARCH))
+
 # containerd
 CONTAINERD_ARCHIVE ?= dist/containerd/containerd-utils-$(BUILD_ARCH).tar.gz
 NERDCTL_FILE ?= dist/containerd/nerdctl-full-$(NERDCTL_VERSION)-linux-$(BUILD_ARCH).tar.gz
@@ -243,6 +248,6 @@ $(RUNTIMES): %: $(basename $(IMAGE_FILE))-%.raw.gz
 $(eval $(call download_colima,$(COLIMA_RELEASE_BIN),$(COLIMA_RELEASE_URL)))
 
 $(TEST_TARGETS): test-%: $(basename $(IMAGE_FILE))-%.raw.gz $(TEST_DEPENDENCIES)
-	@./scripts/test.sh $< $(QEMU_BIN_ARCH) $(COLIMA_RELEASE_BIN)
+	@./scripts/test.sh $< $(COLIMA_IMAGE_ARCH) $(COLIMA_RELEASE_BIN)
 
 test: $(TEST_TARGETS)

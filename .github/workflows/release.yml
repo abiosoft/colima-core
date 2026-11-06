@@ -34,17 +34,19 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Build
-        run: make deps save-builder
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Cache
+        id: cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
-          name: builder-${{ matrix.arch }}
+          key: builder-${{ matrix.arch }}-${{ hashFiles('dependencies.env', 'scripts/Dockerfile') }}
           path: |
             builder-${{ matrix.arch }}.tar
             dist/
-          overwrite: true
+            scripts/.build-image-stamp-*
+
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make deps save-builder
 
   image:
     strategy:
@@ -68,13 +70,18 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Cache Restore
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
-          name: builder-${{ matrix.arch }}
+          key: builder-${{ matrix.arch }}-${{ hashFiles('dependencies.env', 'scripts/Dockerfile') }}
+          path: |
+            builder-${{ matrix.arch }}.tar
+            dist/
+            scripts/.build-image-stamp-*
+          fail-on-cache-miss: true
 
       - name: Build
         run: |
-          chmod +x dist/colima/colima-*
           docker load -i builder-${{ matrix.arch }}.tar
           make DIST=${{ matrix.dist }} --touch deps save-builder
           for rt in none docker containerd incus; do

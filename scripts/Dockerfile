@@ -16,8 +16,6 @@ apt-get -q clean -y
 rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 EOD
 
-COPY image.sh /image.sh
-
 VOLUME /build
 
-CMD ["/image.sh"]
+CMD ["/build/scripts/image.sh"]
