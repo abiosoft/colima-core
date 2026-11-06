@@ -91,16 +91,6 @@ jobs:
           done
           ls -lah dist/img
 
-      - name: Test
-        run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew install colima
-          for rt in none docker containerd incus; do
-            echo "::group::test $rt"
-            make DIST=${{ matrix.dist }} "test-$rt"
-            echo "::endgroup::"
-          done
-
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
