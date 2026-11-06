@@ -22,9 +22,9 @@ jobs:
         arch: [amd64, arm64]
         include:
           - arch: amd64
-            os: ubuntu-24.04
+            os: ubuntu-26.04
           - arch: arm64
-            os: ubuntu-24.04-arm
+            os: ubuntu-26.04-arm
     runs-on: ${{ matrix.os }}
     name: builder-${{ matrix.arch }}
     timeout-minutes: 180
@@ -55,9 +55,9 @@ jobs:
         dist: [ubuntu, debian]
         include:
           - arch: amd64
-            os: ubuntu-24.04
+            os: ubuntu-26.04
           - arch: arm64
-            os: ubuntu-24.04-arm
+            os: ubuntu-26.04-arm
     runs-on: ${{ matrix.os }}
     needs: [builder]
     name: images-${{ matrix.arch }}-${{ matrix.dist }}
@@ -77,14 +77,22 @@ jobs:
           chmod +x dist/colima/colima-*
           docker load -i builder-${{ matrix.arch }}.tar
           make DIST=${{ matrix.dist }} --touch deps save-builder
-          make DIST=${{ matrix.dist }} none docker containerd incus
+          for rt in none docker containerd incus; do
+            echo "::group::img $rt"
+            make DIST=${{ matrix.dist }} "$rt"
+            echo "::endgroup::"
+          done
           ls -lah dist/img
 
       - name: Test
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install colima
-          make DIST=${{ matrix.dist }} test-none test-docker test-containerd test-incus
-          ls -lah dist/img
+          for rt in none docker containerd incus; do
+            echo "::group::test $rt"
+            make DIST=${{ matrix.dist }} "test-$rt"
+            echo "::endgroup::"
+          done
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -96,7 +104,7 @@ jobs:
           compression-level: 0
 
   release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [image]
     if: github.event_name != 'pull_request'
     permissions:
