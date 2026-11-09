@@ -4,20 +4,47 @@ Dependencies for Colima
 
 ## Generating image
 
-Generate a raw disk image compressed with gzip (`.raw.gz`) for the OS architecture and default runtime (docker).
+Generate a raw disk image compressed with gzip (`.raw.gz`) for the OS architecture, default runtime (docker), and default OS (Ubuntu).
 
 ```sh
-make image
+make
 ```
 
-Generate a `.raw.gz` image for another architecture. `OS_ARCH` must be one of `aarch64`, `x86_64`
+Generate a `.raw.gz` image for another architecture. `BUILD_ARCH` must be one of `arm64`, `amd64`
 
 ```sh
-OS_ARCH=x86_64 make image
+BUILD_ARCH=amd64 make
 ```
 
-Generate a `.raw.gz` image for another runtime. `RUNTIME` must be one of `docker`, `containerd`, `incus`, `none`
+Generate a `.raw.gz` image for another runtime.
 
 ```sh
-RUNTIME=containerd make image
+make docker      # default make target
+make containerd
+make incus
+make none
+```
+
+Generate `.raw.gz` images for all runtimes.
+
+```sh
+make all
+```
+
+Generate images based on Debian.
+
+```sh
+DIST=debian make
+```
+
+Test images
+
+```sh
+# test all images
+make test
+
+# test variants
+make test-docker
+make test-containerd
+make test-incus
 ```

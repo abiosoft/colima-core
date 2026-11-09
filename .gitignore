@@ -1,1 +1,3 @@
 dist/
+scripts/.build-image-stamp*
+builder-*.tar

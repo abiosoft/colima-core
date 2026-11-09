@@ -14,44 +14,142 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  builder:
     strategy:
       max-parallel: 2
       fail-fast: true
       matrix:
-        arch: [x86_64, aarch64]
-        runtime: [none, docker, containerd, incus]
+        arch: [amd64, arm64]
         include:
-          - arch: x86_64
-            os: ubuntu-latest
-          - arch: aarch64
-            os: ubuntu-24.04-arm
+          - arch: amd64
+            os: ubuntu-26.04
+          - arch: arm64
+            os: ubuntu-26.04-arm
     runs-on: ${{ matrix.os }}
-    name: build-${{ matrix.arch }}-${{ matrix.runtime }}
+    name: builder-${{ matrix.arch }}
     timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Cache
+        id: cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          key: builder-${{ matrix.arch }}-${{ hashFiles('dependencies.env', 'scripts/Dockerfile') }}
+          path: |
+            builder-${{ matrix.arch }}.tar
+            dist/
+            scripts/.build-image-stamp-*
+
+      - name: Build
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make deps save-builder
+
+  image:
+    strategy:
+      max-parallel: 4
+      fail-fast: true
+      matrix:
+        arch: [amd64, arm64]
+        dist: [ubuntu, debian]
+        include:
+          - arch: amd64
+            os: ubuntu-26.04
+          - arch: arm64
+            os: ubuntu-26.04-arm
+    runs-on: ${{ matrix.os }}
+    needs: [builder]
+    name: images-${{ matrix.arch }}-${{ matrix.dist }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Cache Restore
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          key: builder-${{ matrix.arch }}-${{ hashFiles('dependencies.env', 'scripts/Dockerfile') }}
+          path: |
+            builder-${{ matrix.arch }}.tar
+            dist/
+            scripts/.build-image-stamp-*
+          fail-on-cache-miss: true
+
       - name: Build
         run: |
-          make image OS_ARCH=${{ matrix.arch }} RUNTIME=${{ matrix.runtime }}
+          docker load -i builder-${{ matrix.arch }}.tar
+          make DIST=${{ matrix.dist }} --touch deps save-builder
+          for rt in none docker containerd incus; do
+            echo "::group::img $rt"
+            make DIST=${{ matrix.dist }} "$rt"
+            echo "::endgroup::"
+          done
           ls -lah dist/img
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: img-${{ matrix.arch }}-${{ matrix.runtime }}
-          path: dist/img/*-${{ matrix.runtime }}.*
+          path: dist/img/${{ matrix.dist }}-*-none.raw.gz
+          archive: false
           overwrite: true
           retention-days: 1
-          compression-level: 0
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-none.raw.gz.sha512sum
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-docker.raw.gz
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-docker.raw.gz.sha512sum
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-containerd.raw.gz
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-containerd.raw.gz.sha512sum
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-incus.raw.gz
+          archive: false
+          overwrite: true
+          retention-days: 1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/img/${{ matrix.dist }}-*-incus.raw.gz.sha512sum
+          archive: false
+          overwrite: true
+          retention-days: 1
 
   release:
-    runs-on: ubuntu-latest
-    needs: [build]
+    runs-on: ubuntu-26.04
+    needs: [image]
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
@@ -59,24 +157,24 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist/img
+          merge-multiple: true
 
       - name: Create
         run: >
           tag="${GITHUB_REF##*/}"
 
-          gh release create "${tag}" --draft --title "${tag}" dist/img/*/*.raw.gz dist/img/*/*.sha512sum
+          gh release create "${tag}" --draft --title "${tag}" dist/img/*.raw.gz dist/img/*.raw.gz.sha512sum
 
       - name: Delete build artifacts
         if: always()
         run: |
           gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts \
             --jq '.artifacts[].id' | xargs -r -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
-
