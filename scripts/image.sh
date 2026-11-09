@@ -161,7 +161,7 @@ EOF
 	# packages common to all runtimes, to prevent from final purging
 	chroot_exec apt-get -q install -y \
 		iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq rsync xfsprogs \
-		htop inetutils-ping dnsutils net-tools netcat-openbsd telnet
+		htop inetutils-ping dnsutils net-tools netcat-openbsd telnet vim-tiny nano
 
 	# none
 	if [ "$RUNTIME" == "none" ]; then
