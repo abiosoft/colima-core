@@ -72,7 +72,8 @@ install_packages() (
 			chroot_exec sh /tmp/get-docker.sh --version $DOCKER_VERSION
 			chroot_exec rm /tmp/get-docker.sh
 			chroot_exec apt-mark hold docker-ce docker-ce-cli containerd.io
-			chroot_exec apt-get purge -y dmsetup xz-utils
+			# Docker uses xz to unpack local .tar.xz archives in Dockerfiles.
+			chroot_exec apt-get purge -y dmsetup
 		)
 	fi
 
