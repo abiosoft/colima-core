@@ -63,7 +63,13 @@ install_kernel() (
 
 	umount $CHROOT_DIR/sys
 	umount --recursive $CHROOT_DIR/dev
-	umount $CHROOT_DIR/boot/efi $CHROOT_DIR/boot
+	umount $CHROOT_DIR/boot/efi
+
+	# fill boot partition with zeros, to recover space during compression
+	dd if=/dev/zero of=$CHROOT_DIR/boot/zero || echo done
+	sync
+	rm -f $CHROOT_DIR/boot/zero
+	umount $CHROOT_DIR/boot
 )
 
 install_packages() (
