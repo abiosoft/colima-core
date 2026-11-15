@@ -18,20 +18,29 @@ FILE="$IMG_DIR/$FILENAME"
 
 install_dependencies() (
 	apt-get update
-	apt-get install -y file fdisk libdigest-sha-perl qemu-utils
+	apt-get install -y file libdigest-sha-perl qemu-utils
 )
 
 convert_file() (
 	qemu-img convert -p -f qcow2 -O raw $FILE.img $FILE.raw
 )
 
-extract_partition_offset() (
-	fdisk -l $FILE.raw | grep "$FILE.raw1 " | awk -F' ' '{print $2}'
+attach_image() {
+	# partition devices, update-grub skips a root backed by a file
+	LOOP_DEV=$(losetup --find --show --partscan $FILE.raw)
+	# no udev in the build container
+	for part in /sys/block/${LOOP_DEV#/dev/}/${LOOP_DEV#/dev/}p*; do
+		[ -b /dev/${part##*/} ] || mknod /dev/${part##*/} b $(tr : ' ' <$part/dev)
+	done
+}
+
+detach_image() (
+	losetup --detach $LOOP_DEV
 )
 
 mount_partition() (
 	mkdir -p $CHROOT_DIR
-	mount -o loop,offset=$(($1 * 512)) $FILE.raw $CHROOT_DIR
+	mount ${LOOP_DEV}p1 $CHROOT_DIR
 )
 
 unmount_partition() (
@@ -40,6 +49,21 @@ unmount_partition() (
 
 chroot_exec() (
 	chroot $CHROOT_DIR "$@"
+)
+
+install_kernel() (
+	# kernel and grub.cfg are on the boot and efi partitions
+	mount ${LOOP_DEV}p16 $CHROOT_DIR/boot
+	mount ${LOOP_DEV}p15 $CHROOT_DIR/boot/efi
+	mount --rbind /dev $CHROOT_DIR/dev
+	mount --bind /sys $CHROOT_DIR/sys
+
+	chroot_exec apt-get install -y --no-install-recommends linux-image-virtual-hwe-24.04
+	chroot_exec sh -c 'apt-get purge -y linux-image-virtual $(dpkg-query -W -f "\${Package}\n" "linux-image-6.8.*" "linux-modules-6.8.*" 2>/dev/null)'
+
+	umount $CHROOT_DIR/sys
+	umount --recursive $CHROOT_DIR/dev
+	umount $CHROOT_DIR/boot/efi $CHROOT_DIR/boot
 )
 
 install_packages() (
@@ -56,6 +80,9 @@ install_packages() (
 
 	# packages common to all runtimes, to prevent from final purging
 	chroot_exec apt-get install -y iptables socat sshfs cloud-init lsb-release python3-apt gnupg curl wget dnsmasq xfsprogs
+
+	# hwe kernel
+	install_kernel
 
 	# none
 	if [ "$RUNTIME" == "none" ]; then
@@ -153,7 +180,9 @@ compress_file() (
 # perform all actions
 install_dependencies
 convert_file
-mount_partition "$(extract_partition_offset)"
+attach_image
+mount_partition
 install_packages
 unmount_partition
+detach_image
 compress_file
